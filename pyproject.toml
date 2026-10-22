@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "video-scene-search"
+version = "0.1.0"
+description = "Local multimodal video retrieval with auditable evaluation"
+requires-python = ">=3.10,<3.14"
+dependencies = [
+  "numpy>=1.26,<3", "Pillow>=10,<13", "faiss-cpu>=1.8,<2",
+  "opencv-python-headless>=4.9,<5", "faster-whisper>=1.1,<2", "av>=11,<16",
+  "sentence-transformers>=3,<4", "streamlit>=1.38,<2"
+]
+
+[project.scripts]
+scene-search = "scene_search.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

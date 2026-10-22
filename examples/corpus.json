@@ -1,0 +1,13 @@
+{
+  "videos": [
+    {
+      "id": "video_01",
+      "title": "My recorded conversation",
+      "path": "../data/videos/video_01.mp4",
+      "source": "Self-recorded; replace with recording date and context",
+      "license": "Private self-owned recording",
+      "attribution": "Replace with creator name and participant consent details",
+      "rights_confirmed": false
+    }
+  ]
+}
