@@ -4,10 +4,13 @@ There are **two independent tracks**. Do not combine their measurements.
 
 ## A. Reproducible synthetic demo (no third-party footage)
 
-Runs on a Mac or Linux machine with FFmpeg compiled with `flite`, Python
-3.10–3.13, and project dependencies (`pip install -e .`). Some standard macOS
-FFmpeg builds may lack flite; check `ffmpeg -filters | grep flite` and use a
-compatible build or record your own speech. Model weights download on first use.
+Runs on Mac or Linux with FFmpeg, Python 3.10–3.13, and installed project
+dependencies (`pip install -e .`). The generator uses FFmpeg's `flite` speech
+filter when available and automatically falls back to macOS's built-in `say`
+command if `flite` is missing. On Linux without `flite`, use a compatible
+FFmpeg build or your own permission-cleared speech/video.
+Install FFmpeg on macOS with `brew install ffmpeg`. Verify with
+`ffmpeg -version` and `ffprobe -version`. Model weights download on first use.
 
 ```bash
 python scripts/synthetic_demo.py generate
