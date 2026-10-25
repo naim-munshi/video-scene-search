@@ -33,7 +33,7 @@ scene-search evaluate --index artifacts/demo-index --labels evaluation/demo-labe
 SCENE_INDEX=artifacts/demo-index python -m streamlit run app.py --server.address 127.0.0.1
 ```
 
-The generator requires FFmpeg with the `flite` filter. See
+The generator needs FFmpeg. It uses FFmpeg's `flite` filter when available; on macOS, it otherwise falls back to the built-in `say` command for speech. See
 [Demo & acceptance](docs/DEMO_AND_ACCEPTANCE.md) for setup, preflight checks
 for 2–3 real talking videos, controlled test labels, evaluation, and screen
 recording criteria. Real-scene Recall@5/MRR remains unmeasured without those
