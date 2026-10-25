@@ -62,6 +62,34 @@ Each index records the actual package versions; save `python -m pip freeze` with
 your completed experiment. Model repository revisions are not pinned in v0.1;
 archive the model cache for strict future reproduction.
 
+
+### Apple Silicon: CLIP native crash isolation
+
+If the ingest process previously ended with a segmentation fault inside
+`torch.nn.Conv2d` / `CLIPModel`, pull the latest commit. On macOS the
+visual image encoder now runs in a separate Python process, with
+`OMP_NUM_THREADS=1` and a small batch size (2), to separate PyTorch
+convolution from native audio/video libraries. This is a mitigation,
+**not evidence that the Mac crash is fixed**.
+
+First verify GPU availability:
+
+```bash
+python -c "import torch; print('MPS available:', torch.backends.mps.is_available())"
+```
+
+When MPS is available, try:
+
+```bash
+python -X faulthandler -m scene_search.cli ingest --manifest data/demo-corpus.json --output artifacts/demo-index-mps --whisper-model tiny --language en --device mps
+```
+
+If MPS is unavailable, use `--device cpu` with the same command and a fresh
+output directory. A native failure from the visual subprocess now reports a
+non-zero exit rather than claiming a completed index. Do not try searching
+until an index contains `build.json`. For explicit diagnosis, flags
+`--embedding-mode in-process` and `--visual-batch-size 1` are available.
+
 ## 1. Add videos
 
 Start with one self-recorded video, then expand to 2–3 videos of 10–20 minutes.

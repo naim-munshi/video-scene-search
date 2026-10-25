@@ -16,6 +16,8 @@ def main():
     ingest.add_argument("--frame-seconds", type=float, default=2)
     ingest.add_argument("--window-seconds", type=float, default=10)
     ingest.add_argument("--device", choices=("cpu", "mps", "cuda"), default="cpu")
+    ingest.add_argument("--embedding-mode", choices=("auto", "subprocess", "in-process"), default="auto")
+    ingest.add_argument("--visual-batch-size", type=int, default=2)
     search = commands.add_parser("search")
     search.add_argument("query")
     search.add_argument("--index", default="artifacts/index")
@@ -35,7 +37,8 @@ def main():
         if args.command == "ingest":
             from .pipeline import build
             result = build(args.manifest, args.output, args.whisper_model, args.language,
-                           args.frame_seconds, args.window_seconds, args.device)
+                           args.frame_seconds, args.window_seconds, args.device,
+                           args.embedding_mode, args.visual_batch_size)
         elif args.command == "init-labels":
             if Path(args.output).exists():
                 raise ValueError("Labels already exist; refusing to overwrite")

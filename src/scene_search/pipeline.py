@@ -3,6 +3,8 @@ import importlib.metadata
 import math
 import re
 import shutil
+import subprocess
+import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -92,12 +94,63 @@ def extract_frames(video_path, video_id, stage, frame_seconds, window_seconds):
     return duration, windows, frame_rows
 
 
+def _isolate_visual(mode, platform=None):
+    """Use a fresh process for native visual inference on macOS by default."""
+    if mode not in ("auto", "subprocess", "in-process"):
+        raise ValueError("embedding_mode must be auto, subprocess, or in-process")
+    return mode == "subprocess" or (mode == "auto" and
+                                    (platform if platform is not None else sys.platform) == "darwin")
+
+
+def _encode_visual_subprocess(stage, frame_rows, device, batch_size):
+    """Keep PyTorch convolution outside of the Whisper/PyAV ingestion process."""
+    from .core import write_json, read_json
+    import numpy as np
+
+    inputs = stage / ".visual-input.json"
+    output = stage / ".visual-output.npy"
+    write_json(inputs, frame_rows)
+    env = __import__("os").environ.copy()
+    # These are set before torch loads in the worker; do not mutate the parent.
+    for variable in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS"):
+        env[variable] = "1"
+    cmd = [sys.executable, "-X", "faulthandler", "-m", "scene_search.visual_worker",
+           "--stage", str(stage), "--frames-json", str(inputs),
+           "--output", str(output), "--device", device,
+           "--batch-size", str(batch_size)]
+    print(f"Starting isolated visual encoder: device={device}, batch_size={batch_size}",
+          flush=True)
+    try:
+        proc = subprocess.run(cmd, env=env, check=False)
+        if proc.returncode != 0:
+            signal_hint = " (native crash)" if proc.returncode < 0 else ""
+            raise RuntimeError(
+                f"Visual encoder subprocess failed: exit={proc.returncode}{signal_hint}. "
+                "On Apple Silicon, check torch.backends.mps.is_available() and "
+                "retry ingest with --device mps into a fresh output directory. "
+                "Save the subprocess traceback if it still fails."
+            )
+        if not output.is_file():
+            raise RuntimeError("Visual encoder finished without a vector file")
+        matrix = np.load(output, allow_pickle=False)
+        if (matrix.ndim != 2 or matrix.shape[0] != len(frame_rows)
+                or matrix.shape[1] < 1 or not np.isfinite(matrix).all()):
+            raise ValueError("Visual worker returned invalid embeddings")
+        return np.ascontiguousarray(matrix, dtype="float32")
+    finally:
+        inputs.unlink(missing_ok=True)
+        output.unlink(missing_ok=True)
+
+
 def build(manifest, output, whisper_model="base", language=None, frame_seconds=2.0,
-          window_seconds=10.0, device="cpu"):
+          window_seconds=10.0, device="cpu", embedding_mode="auto", visual_batch_size=2):
     if not all(math.isfinite(x) and x > 0 for x in (frame_seconds, window_seconds)):
         raise ValueError("Sampling and window intervals must be finite and positive")
     if frame_seconds > window_seconds:
         raise ValueError("Frame interval must not exceed the window size")
+    if not isinstance(visual_batch_size, int) or not 1 <= visual_batch_size <= 32:
+        raise ValueError("visual_batch_size must be between 1 and 32")
+    isolate = _isolate_visual(embedding_mode)
     videos = load_manifest(manifest)
     output = Path(output).resolve()
     if output.exists():
@@ -106,7 +159,6 @@ def build(manifest, output, whisper_model="base", language=None, frame_seconds=2
     import numpy as np
     from PIL import Image
     from faster_whisper import WhisperModel
-    from sentence_transformers import SentenceTransformer
 
     output.parent.mkdir(parents=True, exist_ok=True)
     stage = Path(tempfile.mkdtemp(prefix=".scene-build-", dir=output.parent))
@@ -115,8 +167,6 @@ def build(manifest, output, whisper_model="base", language=None, frame_seconds=2
         (stage / "transcripts").mkdir()
         # CTranslate2 uses CPU int8 on Apple Silicon; MPS is for embeddings only.
         whisper = WhisperModel(whisper_model, device="cpu", compute_type="int8")
-        visual = SentenceTransformer(VISUAL_MODEL, device=device)
-        text = SentenceTransformer(TEXT_MODEL, device=device)
         windows, frame_rows, transcript_rows = [], [], []
         for v in videos:
             print(f"Processing {v['id']}: {v['title']}", flush=True)
@@ -142,19 +192,28 @@ def build(manifest, output, whisper_model="base", language=None, frame_seconds=2
             write_json(stage / "transcripts" / f"{v['id']}.json", transcript)
             print(f"Transcribed {v['id']}: {len(transcript)} speech segments", flush=True)
         print(f"Encoding {len(frame_rows)} visual frames", flush=True)
-        matrix = []
-        for offset in range(0, len(frame_rows), 32):
-            images = []
-            for row in frame_rows[offset:offset + 32]:
-                with Image.open(stage / row["file"]) as im:
-                    images.append(im.convert("RGB"))
-            matrix.append(visual.encode(images, normalize_embeddings=True, convert_to_numpy=True))
-        vectors = np.ascontiguousarray(np.concatenate(matrix), dtype="float32")
+        if isolate:
+            vectors = _encode_visual_subprocess(stage, frame_rows, device, visual_batch_size)
+        else:
+            from sentence_transformers import SentenceTransformer
+            visual = SentenceTransformer(VISUAL_MODEL, device=device)
+            matrix = []
+            for offset in range(0, len(frame_rows), 32):
+                images = []
+                for row in frame_rows[offset:offset + 32]:
+                    with Image.open(stage / row["file"]) as im:
+                        images.append(im.convert("RGB"))
+                matrix.append(visual.encode(images, batch_size=visual_batch_size,
+                                            normalize_embeddings=True, convert_to_numpy=True))
+            vectors = np.ascontiguousarray(np.concatenate(matrix), dtype="float32")
+            del visual
         index = faiss.IndexFlatIP(vectors.shape[1])
         index.add(vectors)
         faiss.write_index(index, str(stage / "visual.faiss"))
         print(f"Encoded visual frames; encoding {len(transcript_rows)} speech segments", flush=True)
         if transcript_rows:
+            from sentence_transformers import SentenceTransformer
+            text = SentenceTransformer(TEXT_MODEL, device=device)
             vectors = np.ascontiguousarray(text.encode([r["text"] for r in transcript_rows],
                 batch_size=32, normalize_embeddings=True, convert_to_numpy=True), dtype="float32")
             index = faiss.IndexFlatIP(vectors.shape[1])
@@ -172,7 +231,8 @@ def build(manifest, output, whisper_model="base", language=None, frame_seconds=2
                 "visual_model": VISUAL_MODEL, "text_model": TEXT_MODEL,
                 "whisper_model": whisper_model, "whisper_device": "cpu", "language": language,
                 "frame_seconds": frame_seconds, "window_seconds": window_seconds,
-                "embedding_device": device, "packages": packages,
+                "embedding_device": device, "embedding_mode": "subprocess" if isolate else "in-process",
+                "visual_batch_size": visual_batch_size, "packages": packages,
                 "files": {str(p.relative_to(stage)): sha256(p) for p in stage.rglob("*") if p.is_file()}}
         write_json(stage / "build.json", meta)
         stage.rename(output)

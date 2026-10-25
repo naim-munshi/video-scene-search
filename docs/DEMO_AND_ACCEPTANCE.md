@@ -138,3 +138,22 @@ If segmentation fault continues, retain all output including the printed
 result from `python -X faulthandler -m scene_search.cli ingest ...` against
 a new unique output path. Do not state that the conflict is definitely fixed
 until a successful Mac run is observed.
+
+## Apple Silicon CLIP convolution crash: isolated encoder (October 2026)
+
+The follow-up Mac failure is **not in PyAV decoding or Whisper transcription**.
+All three 30s videos decode and produce nine speech segments. The native
+segmentation fault occurs in `torch.nn.Conv2d` while encoding 45 CLIP frames.
+
+The macOS default is now an isolated visual-embedding subprocess. It starts
+PyTorch in a fresh process after FFmpeg/PyAV/Whisper extraction, limits
+OpenMP/BLAS threads to one, and encodes small batches of images. The parent
+validates the saved `.npy` embeddings before building the FAISS index and
+never publishes a partial build. On Linux the original in-process path
+remains the default. Integration fixtures explicitly use in-process mode.
+
+The fix is subject to a new Mac acceptance run. If a subprocess still
+segfaults, capture the worker's faulthandler traceback and try the Metal
+backend (`--device mps`) after confirming `torch.backends.mps.is_available()`.
+Output paths must be new and unique; temporary failed stages are cleaned
+automatically. A successful unit/CI run does not prove native Mac safety.

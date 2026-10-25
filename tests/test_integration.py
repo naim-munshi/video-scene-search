@@ -72,7 +72,8 @@ class IntegrationTests(unittest.TestCase):
         self.addCleanup(self.whisper_patch.stop)
         from scene_search.pipeline import build
         self.output = self.root / "index"
-        result = build(self.root / "corpus.json", self.output, frame_seconds=1, window_seconds=2)
+        result = build(self.root / "corpus.json", self.output, frame_seconds=1,
+                       window_seconds=2, embedding_mode="in-process")
         self.assertEqual(result["frames"], 4)
         self.assertEqual(result["windows"], 2)
 
