@@ -157,3 +157,22 @@ segfaults, capture the worker's faulthandler traceback and try the Metal
 backend (`--device mps`) after confirming `torch.backends.mps.is_available()`.
 Output paths must be new and unique; temporary failed stages are cleaned
 automatically. A successful unit/CI run does not prove native Mac safety.
+
+## Query crash on macOS 26.5 (October 26, 2026)
+
+The user's screenshot shows Python 3.12.4 terminating with SIGSEGV (bad
+memory access), and the latest search log shows `MPS: True` but a crash
+after beginning to load the query image processor. Earlier search code
+ignored this available GPU, defaulting to the CPU, and loaded models
+inside the Streamlit/FAISS process. The query path now uses a dedicated
+subprocess on macOS with one CPU thread and MPS auto-selection, or an
+explicit `--device mps` override. Both query modalities have independent
+workers. The FAISS indexes and corpus remain unchanged.
+
+A subprocess crash is reported as a failed worker rather than killing
+the user-facing process, but the underlying PyTorch build may still be
+unstable. **Do not claim native macOS acceptance until both transcript
+and hybrid queries return actual timestamps without crashing.**
+
+Verify that `artifacts/demo-index-isolated/build.json` exists first.
+Do not regenerate the synthetic media or overwrite the existing index.

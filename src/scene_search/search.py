@@ -1,17 +1,65 @@
+"""Semantic video scene search with isolated query model inference on macOS."""
+import os
+import subprocess
+import sys
+import tempfile
 from pathlib import Path
 
-from .core import MODES, aggregate_rank, fuse, read_json, sha256
+from .core import MODES, aggregate_rank, fuse, read_json, sha256, write_json
+from .pipeline import VISUAL_MODEL, TEXT_MODEL
+
+
+def _should_isolate_query(mode, platform=None):
+    if mode not in ("auto", "subprocess", "in-process"):
+        raise ValueError("embedding_mode must be auto, subprocess, or in-process")
+    return mode == "subprocess" or (mode == "auto" and
+                                    (platform or sys.platform) == "darwin")
+
+
+def _query_embedding_subprocess(query, modality, device):
+    """Return a validated query vector or a useful error when native code fails."""
+    import numpy as np
+    with tempfile.TemporaryDirectory(prefix="scene-search-query-") as td:
+        temporary = Path(td)
+        prompt = temporary / "query.json"
+        result = temporary / "embedding.npy"
+        write_json(prompt, {"query": query, "modality": modality})
+        env = os.environ.copy()
+        for key in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS"):
+            env[key] = "1"
+        command = [sys.executable, "-X", "faulthandler", "-m",
+                   "scene_search.query_worker", "--query-json", str(prompt),
+                   "--output", str(result), "--device", device]
+        try:
+            process = subprocess.run(command, env=env, check=False, timeout=600)
+        except subprocess.TimeoutExpired as exc:
+            raise RuntimeError("Query encoder timed out after 600 seconds") from exc
+        if process.returncode:
+            raise RuntimeError(
+                f"Query encoder subprocess exited with code {process.returncode}. "
+                "See worker logs above. On Mac, try --device mps if available; "
+                "native crashes may require a different compatible PyTorch build."
+            )
+        if not result.is_file():
+            raise RuntimeError("Query encoder produced no embedding file")
+        vector = np.load(result, allow_pickle=False)
+        if (vector.ndim != 2 or vector.shape[0] != 1
+                or vector.shape[1] < 1 or not np.isfinite(vector).all()):
+            raise ValueError("Invalid query embedding dimensions or values")
+        return np.ascontiguousarray(vector, dtype="float32")
 
 
 class SearchEngine:
-    """Load only trusted locally generated artifacts; FAISS is a native file format."""
+    """Load trusted local indexes; protect application from native query crashes."""
 
-    def __init__(self, root, device="cpu"):
+    def __init__(self, root, device="auto", embedding_mode="auto"):
         import faiss
         self.root = Path(root).resolve()
         self.meta = read_json(self.root / "build.json")
         if self.meta.get("schema_version") != 1:
             raise ValueError("Unsupported index schema")
+        if self.meta.get("visual_model") != VISUAL_MODEL or self.meta.get("text_model") != TEXT_MODEL:
+            raise ValueError("Unsupported index embedding models")
         for name, digest in self.meta["files"].items():
             path = (self.root / name).resolve()
             if not path.is_relative_to(self.root) or sha256(path) != digest:
@@ -28,25 +76,41 @@ class SearchEngine:
             self.text_index is not None and self.text_index.ntotal != len(self.segments)
         ):
             raise ValueError("Index and metadata row counts differ")
+        if device not in ("auto", "cpu", "mps", "cuda"):
+            raise ValueError("Invalid search device")
+        if embedding_mode == "auto":
+            embedding_mode = os.environ.get("SCENE_EMBEDDING_MODE", "auto")
+        self.isolate = _should_isolate_query(embedding_mode)
         self.device = device
         self._visual_model = self._text_model = None
 
     def _rank(self, query, modality):
         import numpy as np
-        from sentence_transformers import SentenceTransformer
         if modality == "visual":
-            if self._visual_model is None:
-                self._visual_model = SentenceTransformer(self.meta["visual_model"], device=self.device)
-            model, index, rows = self._visual_model, self.visual_index, self.frames
+            model_name, index, rows = VISUAL_MODEL, self.visual_index, self.frames
         else:
             if self.text_index is None:
                 return []
-            if self._text_model is None:
-                self._text_model = SentenceTransformer(self.meta["text_model"], device=self.device)
-            model, index, rows = self._text_model, self.text_index, self.segments
-        vector = np.ascontiguousarray(model.encode([query], normalize_embeddings=True,
-                                                   convert_to_numpy=True), dtype="float32")
-        # Full scan is intentional for this small corpus: exact max per window and full-rank RRF.
+            model_name, index, rows = TEXT_MODEL, self.text_index, self.segments
+        if self.isolate:
+            vector = _query_embedding_subprocess(query, modality, self.device)
+        else:
+            from sentence_transformers import SentenceTransformer
+            device = "cpu" if self.device == "auto" else self.device
+            if modality == "visual":
+                if self._visual_model is None:
+                    self._visual_model = SentenceTransformer(model_name, device=device)
+                model = self._visual_model
+            else:
+                if self._text_model is None:
+                    self._text_model = SentenceTransformer(model_name, device=device)
+                model = self._text_model
+            vector = np.ascontiguousarray(
+                model.encode([query], normalize_embeddings=True, convert_to_numpy=True),
+                dtype="float32")
+        if vector.shape[1] != index.d:
+            raise ValueError(f"Query embedding dimension {vector.shape[1]} differs from "
+                             f"FAISS index dimension {index.d}")
         scores, indices = index.search(vector, index.ntotal)
         return aggregate_rank(scores[0], indices[0], rows)
 

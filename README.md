@@ -126,6 +126,29 @@ Output directories cannot be overwritten. Rebuild into `artifacts/index-v2`
 when changing the corpus/configuration; annotations are tied to the build hash.
 Atomic publication prevents an interrupted build from appearing complete.
 
+## Apple Silicon: query-time native crash protection
+
+Query encoding is isolated on macOS, just like visual frame encoding.
+The CLIP text encoder and multilingual transcript model no longer run
+inside the Streamlit/FAISS parent process by default. By default, the
+query worker selects MPS when supported and otherwise CPU; for the
+known MPS-enabled Mac, specify `--device mps` explicitly. Each query
+modality currently starts a new process, so first search may be slow,
+especially with model loading. Native worker failure now becomes a
+clear exception without killing the search UI; this is **not a proven
+fix for crashes inside PyTorch itself**.
+
+```bash
+scene-search search "project deadline" --index artifacts/demo-index-isolated --mode transcript --device mps
+scene-search search "project deadline" --index artifacts/demo-index-isolated --mode hybrid --device mps
+SCENE_INDEX=artifacts/demo-index-isolated python -m streamlit run app.py --server.address 127.0.0.1
+```
+
+Do not run search until `artifacts/demo-index-isolated/build.json`
+exists. To diagnose a worker crash, retain its traceback and exit code.
+The explicit `--embedding-mode in-process` option is for testing only
+on machines affected by native PyTorch crashes.
+
 ## 3. Search and play
 
 ```bash

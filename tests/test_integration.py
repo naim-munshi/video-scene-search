@@ -80,12 +80,12 @@ class IntegrationTests(unittest.TestCase):
     def test_ingest_restart_search_evaluate(self):
         from scene_search.search import SearchEngine
         from scene_search.evaluate import evaluate
-        engine = SearchEngine(self.output)
+        engine = SearchEngine(self.output, device="cpu", embedding_mode="in-process")
         for mode in ("visual", "transcript", "hybrid"):
             self.assertEqual(engine.search("red screen", mode)[0]["id"], "fixture:00000")
             self.assertEqual(engine.search("blue screen", mode)[0]["start"], 2)
         # Reload native indexes from disk, not the build's in-memory objects.
-        self.assertEqual(SearchEngine(self.output).search("red")[0]["id"], "fixture:00000")
+        self.assertEqual(SearchEngine(self.output, device="cpu", embedding_mode="in-process").search("red")[0]["id"], "fixture:00000")
         write_json(self.root / "labels.json", {"status": "annotated",
             "build_sha256": sha256(self.output / "build.json"), "queries": [
                 {"id": "fixture-q1", "text": "red", "kind": "visual", "split": "test",
@@ -97,11 +97,12 @@ class IntegrationTests(unittest.TestCase):
         from scene_search.search import SearchEngine
         (self.output / "visual.faiss").write_bytes(b"corrupt")
         with self.assertRaisesRegex(ValueError, "integrity"):
-            SearchEngine(self.output)
+            SearchEngine(self.output, device="cpu", embedding_mode="in-process")
 
     def test_ui_search_and_annotation(self):
         from streamlit.testing.v1 import AppTest
-        with patch.dict(os.environ, {"SCENE_INDEX": str(self.output)}):
+        with patch.dict(os.environ, {"SCENE_INDEX": str(self.output),
+                                  "SCENE_EMBEDDING_MODE": "in-process"}):
             app = AppTest.from_file(str(Path(__file__).parents[1] / "app.py")).run(timeout=30)
             self.assertFalse(app.exception)
             app.text_input[0].set_value("red screen")

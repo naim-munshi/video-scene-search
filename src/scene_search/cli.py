@@ -23,12 +23,16 @@ def main():
     search.add_argument("--index", default="artifacts/index")
     search.add_argument("--mode", choices=("visual", "transcript", "hybrid"), default="hybrid")
     search.add_argument("--k", type=int, default=5)
+    search.add_argument("--device", choices=("auto", "cpu", "mps", "cuda"), default="auto")
+    search.add_argument("--embedding-mode", choices=("auto", "subprocess", "in-process"), default="auto")
     evaluate = commands.add_parser("evaluate")
     evaluate.add_argument("--index", default="artifacts/index")
     evaluate.add_argument("--labels", default="evaluation/labels.json")
     evaluate.add_argument("--output", required=True)
     evaluate.add_argument("--split", choices=("dev", "test"), default="test")
     evaluate.add_argument("--k", type=int, default=5)
+    evaluate.add_argument("--device", choices=("auto", "cpu", "mps", "cuda"), default="auto")
+    evaluate.add_argument("--embedding-mode", choices=("auto", "subprocess", "in-process"), default="auto")
     labels = commands.add_parser("init-labels", help="Create a blank 24-query annotation form")
     labels.add_argument("--index", default="artifacts/index")
     labels.add_argument("--output", default="evaluation/labels.json")
@@ -50,7 +54,7 @@ def main():
             result = {"labels": args.output, "instructions": "Write queries and hand-label relevant window IDs using the Annotate tab"}
         else:
             from .search import SearchEngine
-            engine = SearchEngine(args.index)
+            engine = SearchEngine(args.index, device=args.device, embedding_mode=args.embedding_mode)
             if args.command == "search":
                 result = engine.search(args.query, args.mode, args.k)
             else:
