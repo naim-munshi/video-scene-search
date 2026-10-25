@@ -36,6 +36,62 @@ def load_manifest(path):
     return videos
 
 
+def extract_frames(video_path, video_id, stage, frame_seconds, window_seconds):
+    """Decode frames through PyAV, avoiding OpenCV/PyAV FFmpeg dylib collisions.
+
+    Uses presentation timestamps from the video stream for seeking alignment.
+    Constant-frame-rate MP4s are recommended; the last partial window is kept.
+    """
+    import av
+    from PIL import Image
+
+    frame_rows = []
+    with av.open(str(video_path), mode="r") as container:
+        if not container.streams.video:
+            raise ValueError(f"No video stream: {video_id}")
+        stream = container.streams.video[0]
+        # Prefer video stream duration to avoid audio padding extending windows.
+        duration = (float(stream.duration * stream.time_base)
+                    if stream.duration is not None and stream.time_base else None)
+        if (duration is None or not math.isfinite(duration) or duration <= 0) and container.duration:
+            duration = float(container.duration / av.time_base)
+        if duration is None or not math.isfinite(duration) or duration <= 0:
+            raise ValueError(f"Missing/invalid video duration: {video_id}")
+        windows = make_windows(video_id, duration, window_seconds)
+        fps = float(stream.average_rate) if stream.average_rate else None
+        time_origin = (float(stream.start_time * stream.time_base)
+                       if stream.start_time is not None and stream.time_base else 0.0)
+        next_sample = 0.0
+        frames_decoded = 0
+        for frame in container.decode(stream):
+            frames_decoded += 1
+            timestamp = (float(frame.time) - time_origin if frame.time is not None else
+                         (frames_decoded - 1) / fps if fps and fps > 0 else float('nan'))
+            if not math.isfinite(timestamp):
+                raise ValueError(f"Cannot determine frame timestamps: {video_id}")
+            if timestamp < -1e-5:
+                continue
+            timestamp = max(0.0, timestamp)
+            if timestamp + 1e-8 < next_sample or timestamp >= duration:
+                continue
+            name = f"frames/{video_id}-{frames_decoded-1:08d}.jpg"
+            picture = frame.to_image().convert("RGB")
+            if picture.width > 640:
+                picture = picture.resize((640, max(1, round(picture.height * 640 / picture.width))),
+                                         resample=Image.Resampling.BILINEAR)
+            picture.save(stage / name, format="JPEG")
+            window_id = windows[min(int(timestamp // window_seconds), len(windows) - 1)]["id"]
+            frame_rows.append({"video_id": video_id, "timestamp": timestamp,
+                               "file": name, "window_ids": [window_id]})
+            next_sample += frame_seconds
+        if frames_decoded == 0 or not frame_rows:
+            raise ValueError(f"No decodable frames: {video_id}")
+        # A truncated input should not quietly appear successfully indexed.
+        if stream.frames and fps and fps > 0 and frames_decoded < stream.frames - max(2, fps):
+            raise ValueError(f"Video decoding ended early: {video_id}")
+    return duration, windows, frame_rows
+
+
 def build(manifest, output, whisper_model="base", language=None, frame_seconds=2.0,
           window_seconds=10.0, device="cpu"):
     if not all(math.isfinite(x) and x > 0 for x in (frame_seconds, window_seconds)):
@@ -46,7 +102,6 @@ def build(manifest, output, whisper_model="base", language=None, frame_seconds=2
     output = Path(output).resolve()
     if output.exists():
         raise ValueError("Output already exists; use a new directory for each build")
-    import cv2
     import faiss
     import numpy as np
     from PIL import Image
@@ -66,41 +121,12 @@ def build(manifest, output, whisper_model="base", language=None, frame_seconds=2
         for v in videos:
             print(f"Processing {v['id']}: {v['title']}", flush=True)
             v["sha256"] = sha256(v["path"])
-            cap = cv2.VideoCapture(v["path"])
-            try:
-                fps = cap.get(cv2.CAP_PROP_FPS)
-                count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
-                if not cap.isOpened() or not math.isfinite(fps) or fps <= 0:
-                    raise ValueError(f"Cannot read video: {v['id']}")
-                duration = count / fps
-                v["duration"] = duration
-                vw = make_windows(v["id"], duration, window_seconds)
-                windows.extend(vw)
-                # Decode sequentially to avoid repeated keyframe seeking and timestamp drift.
-                frame_number, next_sample = 0, 0.0
-                while True:
-                    ok, frame = cap.read()
-                    if not ok:
-                        break
-                    timestamp = frame_number / fps
-                    if timestamp + 1e-8 >= next_sample and timestamp < duration:
-                        name = f"frames/{v['id']}-{frame_number:08d}.jpg"
-                        h, w = frame.shape[:2]
-                        if w > 640:
-                            frame = cv2.resize(frame, (640, max(1, round(h * 640 / w))))
-                        if not cv2.imwrite(str(stage / name), frame):
-                            raise ValueError("Could not save frame")
-                        wid = vw[min(int(timestamp // window_seconds), len(vw) - 1)]["id"]
-                        frame_rows.append({"video_id": v["id"], "timestamp": timestamp,
-                                           "file": name, "window_ids": [wid]})
-                        next_sample += frame_seconds
-                    frame_number += 1
-                if frame_number < count - max(2, fps):
-                    raise ValueError(f"Video decoding ended early: {v['id']}")
-                if not any(r["video_id"] == v["id"] for r in frame_rows):
-                    raise ValueError(f"No frames extracted from {v['id']}")
-            finally:
-                cap.release()
+            duration, vw, samples = extract_frames(v["path"], v["id"], stage,
+                                                   frame_seconds, window_seconds)
+            v["duration"] = duration
+            windows.extend(vw)
+            frame_rows.extend(samples)
+            print(f"Decoded {v['id']}: {len(samples)} sampled frames; transcribing speech", flush=True)
             segments, info = whisper.transcribe(v["path"], language=language, vad_filter=True,
                                                 condition_on_previous_text=False)
             transcript = []
@@ -114,6 +140,8 @@ def build(manifest, output, whisper_model="base", language=None, frame_seconds=2
                     transcript_rows.append(row)
             v["detected_language"] = info.language
             write_json(stage / "transcripts" / f"{v['id']}.json", transcript)
+            print(f"Transcribed {v['id']}: {len(transcript)} speech segments", flush=True)
+        print(f"Encoding {len(frame_rows)} visual frames", flush=True)
         matrix = []
         for offset in range(0, len(frame_rows), 32):
             images = []
@@ -125,18 +153,20 @@ def build(manifest, output, whisper_model="base", language=None, frame_seconds=2
         index = faiss.IndexFlatIP(vectors.shape[1])
         index.add(vectors)
         faiss.write_index(index, str(stage / "visual.faiss"))
+        print(f"Encoded visual frames; encoding {len(transcript_rows)} speech segments", flush=True)
         if transcript_rows:
             vectors = np.ascontiguousarray(text.encode([r["text"] for r in transcript_rows],
                 batch_size=32, normalize_embeddings=True, convert_to_numpy=True), dtype="float32")
             index = faiss.IndexFlatIP(vectors.shape[1])
             index.add(vectors)
             faiss.write_index(index, str(stage / "transcript.faiss"))
+        print("Writing index files and build manifest", flush=True)
         write_json(stage / "windows.json", windows)
         write_json(stage / "frames.json", frame_rows)
         write_json(stage / "segments.json", transcript_rows)
         write_json(stage / "corpus.json", {"videos": videos})
         packages = {p: importlib.metadata.version(p) for p in (
-            "numpy", "faiss-cpu", "opencv-python-headless", "faster-whisper",
+            "numpy", "faiss-cpu", "av", "faster-whisper",
             "sentence-transformers", "torch", "transformers", "streamlit")}
         meta = {"schema_version": 1, "created_at": datetime.now(timezone.utc).isoformat(),
                 "visual_model": VISUAL_MODEL, "text_model": TEXT_MODEL,

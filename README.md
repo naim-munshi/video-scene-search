@@ -198,7 +198,7 @@ RUN_INTEGRATION=1 python -m unittest discover -s tests -v
 python scripts/real_model_smoke.py
 ```
 
-The integration suite uses real OpenCV/FAISS and Streamlit AppTest with fake
+The integration suite uses real PyAV/FAISS and Streamlit AppTest with fake
 encoders/ASR so it runs without model downloads. The final smoke script uses
 real CLIP, multilingual MiniLM and Whisper tiny on generated video/speech;
 it requires `ffmpeg` with the `flite` filter. Neither check measures real-world
@@ -207,7 +207,7 @@ retrieval quality. Normal ingestion does not require that ffmpeg executable.
 ## Limitations and local security
 
 - v0.1 uses fixed windows, not shot-boundary detection or a temporal video model.
-- Sampling uses frame number/FPS; variable-frame-rate sources should be converted
+- Sampling uses video presentation timestamps; variable-frame-rate sources should be converted
   to constant FPS before ingestion. Video codec metadata may be imperfect.
 - The local app has no user authentication and is bound to loopback. Do not
   expose it publicly; it can display the private corpus.

@@ -94,7 +94,7 @@ metrics. The generated audio is synthetic voice, not human conversation.
 | --- | --- | --- |
 | Code compiles and pure tests pass | GitHub Actions core job | Automated |
 | Three synthetic 30s MP4s generated with speech | `test_demo.py` on FFmpeg/flite hosts | Automated where supported |
-| Native FAISS/OpenCV/UI integration | Opt-in `RUN_INTEGRATION=1` | Needs full ML install |
+| Native FAISS/PyAV/UI integration | Opt-in `RUN_INTEGRATION=1` | Needs full ML install |
 | Real pretrained-model ingestion | `scripts/real_model_smoke.py` | Previously validated on Linux per `docs/VALIDATION.md`; rerun locally |
 | 2–3 authentic 10–20min video recordings | Media with provenance and confirmed permission | **Not supplied** |
 | Manual annotation and real-data Recall@5 | `reports/real-test-v1/` | **Not measured** |
@@ -108,3 +108,33 @@ metrics. The generated audio is synthetic voice, not human conversation.
 
 Do not substitute synthetic benchmark numbers for real-video results. Media files,
 indexes, annotation files, model caches and local reports are excluded from git.
+
+## macOS native FFmpeg-library collision mitigation (October 2026)
+
+On Apple Silicon the previous ingestion imported OpenCV and PyAV/faster-whisper
+in one process, triggering duplicate `AVFFrameReceiver`/`AVFAudioReceiver`
+Objective-C runtime class warnings and a native segmentation fault during a
+three-video synthetic demo. The ingestion decoder now uses **PyAV and Pillow**,
+with no OpenCV import. Optional native integration-test video creation also
+uses PyAV. This avoids that specific duplicate-library loading path, but it
+is **not yet verified on the user's Mac** and does not establish the cause of
+all possible native crashes. The build uses an atomic staging directory, so
+a crash must not leave a published complete index.
+
+Stop the Streamlit server with Ctrl+C; then pull the new code and rerun the
+existing synthetic fixture without regenerating it:
+
+```bash
+cd ~/video-scene-search
+git pull --ff-only origin MdNaim
+source .venv/bin/activate
+python -m pip install -e .
+python -m unittest discover -s tests -v
+scene-search ingest --manifest data/demo-corpus.json --output artifacts/demo-index --whisper-model tiny --language en
+```
+
+If segmentation fault continues, retain all output including the printed
+`Decoded`, `Transcribed`, `Encoding`, and `Writing` phase markers, and the
+result from `python -X faulthandler -m scene_search.cli ingest ...` against
+a new unique output path. Do not state that the conflict is definitely fixed
+until a successful Mac run is observed.
