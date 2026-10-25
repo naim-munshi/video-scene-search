@@ -7,8 +7,20 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from PIL import Image
 from scene_search.pipeline import extract_frames
+
+
+class FakeImage:
+    width = 48
+    height = 32
+
+    def convert(self, mode):
+        assert mode == "RGB"
+        return self
+
+    def save(self, path, format):
+        assert format == "JPEG"
+        Path(path).write_bytes(b"mock-image")
 
 
 class FakeFrame:
@@ -16,7 +28,7 @@ class FakeFrame:
         self.time = time
 
     def to_image(self):
-        return Image.new("RGB", (48, 32), (255, 0, 0))
+        return FakeImage()
 
 
 class FakeContainer:
@@ -41,7 +53,7 @@ class FrameDecodeTests(unittest.TestCase):
                                  average_rate=Fraction(1, 1), start_time=0, frames=30)
         fake = SimpleNamespace(open=lambda *_a, **_kw: FakeContainer(
             stream, [FakeFrame(float(i)) for i in range(30)]))
-        with tempfile.TemporaryDirectory() as td, patch.dict(sys.modules, {"av": fake}):
+        with tempfile.TemporaryDirectory() as td, patch.dict(sys.modules, {"av": fake, "PIL": SimpleNamespace(Image=SimpleNamespace())}):
             root = Path(td)
             (root / "frames").mkdir()
             duration, windows, rows = extract_frames("fake.mp4", "demo", root, 2, 10)
@@ -58,7 +70,7 @@ class FrameDecodeTests(unittest.TestCase):
                                  average_rate=Fraction(1, 1), start_time=0, frames=30)
         fake = SimpleNamespace(open=lambda *_a, **_kw: FakeContainer(
             stream, [FakeFrame(float(i)) for i in range(3)]))
-        with tempfile.TemporaryDirectory() as td, patch.dict(sys.modules, {"av": fake}):
+        with tempfile.TemporaryDirectory() as td, patch.dict(sys.modules, {"av": fake, "PIL": SimpleNamespace(Image=SimpleNamespace())}):
             root = Path(td)
             (root / "frames").mkdir()
             with self.assertRaisesRegex(ValueError, "ended early"):
