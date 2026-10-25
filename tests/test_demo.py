@@ -6,6 +6,8 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest import mock
 
 from scene_search.core import make_windows, sha256, write_json
 
@@ -16,6 +18,18 @@ spec.loader.exec_module(demo)
 
 
 class SyntheticDemoTests(unittest.TestCase):
+    def test_macos_say_fallback_when_flite_is_missing(self):
+        with mock.patch.object(demo.sys, "platform", "darwin"), \
+             mock.patch.object(demo.shutil, "which", return_value="/usr/bin/say"), \
+             mock.patch.object(demo.subprocess, "run",
+                               return_value=SimpleNamespace(stdout=" ... other_filter ... ")):
+            self.assertEqual(demo._tts_backend("ffmpeg"), "say")
+
+    def test_ffmpeg_flite_is_preferred_when_present(self):
+        with mock.patch.object(demo.subprocess, "run",
+                               return_value=SimpleNamespace(stdout=" ... flite ... ")):
+            self.assertEqual(demo._tts_backend("ffmpeg"), "flite")
+
     def test_synthetic_ground_truth_is_24_queries_with_no_leakage(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -42,7 +56,7 @@ class SyntheticDemoTests(unittest.TestCase):
         if not shutil.which("ffprobe"):
             self.skipTest("ffprobe missing")
         try:
-            demo._require_ffmpeg()
+            demo._tts_backend(demo._require_ffmpeg())
         except RuntimeError as exc:
             self.skipTest(str(exc))
         import importlib.util
@@ -69,7 +83,7 @@ class SyntheticDemoTests(unittest.TestCase):
     @unittest.skipUnless(shutil.which("ffmpeg") and shutil.which("ffprobe"), "ffmpeg and ffprobe required")
     def test_generated_media_has_video_and_audio(self):
         try:
-            demo._require_ffmpeg()
+            demo._tts_backend(demo._require_ffmpeg())
         except RuntimeError as exc:
             self.skipTest(str(exc))
         with tempfile.TemporaryDirectory() as tmp:
