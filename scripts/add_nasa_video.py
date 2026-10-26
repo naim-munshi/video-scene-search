@@ -11,10 +11,11 @@ import os
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from scene_search.core import read_json, write_json
 from scene_search.pipeline import load_manifest
-from prepare_portfolio_videos import VIDEOS, manifest_entry, probe
+from scripts.prepare_portfolio_videos import VIDEOS, manifest_entry, probe
 
 
 def find_nasa_source(data_root, explicit=None):
