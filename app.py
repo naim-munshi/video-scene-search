@@ -11,7 +11,7 @@ import streamlit as st
 from scene_search.core import sha256, validate_labels
 from scene_search.search import SearchEngine
 from scene_search.ui_helpers import (
-    discover_indexes, format_index, is_synthetic, readable_time,
+    discover_indexes, format_index, is_synthetic, readable_time, preview_frames,
 )
 
 APP_ROOT = Path(__file__).resolve().parent
@@ -198,8 +198,28 @@ with search_tab:
              for i, r in enumerate(results)],
             hide_index=True, use_container_width=True)
     else:
-        st.caption("Try: 'People talking in an interview', "
-                   "'Two people standing outdoors', or 'NASA lunar rover'.")
+        st.markdown("#### Explore this collection")
+        st.caption("Browse indexed footage below, or search for a specific moment above.")
+        thumbnails = preview_frames(video_rows, engine.frames, root)
+        preview_cols = st.columns(min(3, len(video_rows)), gap="medium")
+        for column, video in zip(preview_cols, video_rows):
+            with column:
+                with st.container(border=True):
+                    thumbnail = thumbnails.get(video["id"])
+                    if thumbnail is not None:
+                        st.image(str(thumbnail), use_container_width=True)
+                    else:
+                        st.caption("No representative frame available")
+                    video_title = escape(str(video.get("title", "Untitled")))
+                    count = sum(w["video_id"] == video["id"] for w in engine.windows)
+                    st.markdown(
+                        '<div class="vss-gallery-title">' + video_title + '</div>'
+                        '<div class="vss-gallery-meta">'
+                        + readable_time(video.get("duration", 0))
+                        + ' · ' + str(count) + ' searchable moments</div>',
+                        unsafe_allow_html=True,
+                    )
+        st.caption("Use the Video library tab to watch full footage and review source permissions.")
 
 with annotation_tab:
     st.subheader("Watch the source; label without using search results")
