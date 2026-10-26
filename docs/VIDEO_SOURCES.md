@@ -25,6 +25,30 @@ Required credits:
 - (CC) Blender Foundation | mango.blender.org. When showing the full film,
   retain its credit scroll.
 
+## Already downloaded the two WebM files?
+
+The user successfully downloaded `interview.webm` (160 MiB)
+and `tears_of_steel.webm` (544 MiB) into `data/videos/`.
+**Do not download them a second time**. Pull the latest branch and
+use the source-preserving, network-disabled conversion path:
+
+```bash
+cd ~/video-scene-search
+source .venv/bin/activate
+git pull --ff-only origin MdNaim
+df -h data/videos
+python scripts/prepare_portfolio_videos.py --only interview film --local-only
+python scripts/real_video_preflight.py --manifest data/portfolio-corpus.json
+```
+
+The conversion saves `portfolio_interview.mp4` and `portfolio_film.mp4`
+beside the original WebMs; it never deletes the manually downloaded files.
+Ensure at least 1.5 GB free space before conversion. The two-video manifest
+fulfils the project's 2–3 video evaluation requirement; NASA is optional.
+
+`--local-only` guarantees no network downloading. If a source file was not
+fully downloaded or cannot be decoded, repair it before indexing.
+
 ## Mac setup
 
 ```bash
