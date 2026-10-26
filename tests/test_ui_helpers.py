@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from scene_search.ui_helpers import (discover_indexes, format_index,
-                                     is_synthetic, readable_time)
+                                     is_synthetic, readable_time, preview_frames)
 
 
 class UIHelperTests(unittest.TestCase):
@@ -36,6 +36,35 @@ class UIHelperTests(unittest.TestCase):
         self.assertEqual(readable_time(0), "00:00")
         self.assertEqual(readable_time(887.6), "14:47")
         self.assertEqual(readable_time(3671), "1:01:11")
+
+    def test_preview_frames_prefer_video_specific_safe_paths(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "frames").mkdir()
+            early = root / "frames" / "interview-begin.jpg"
+            target = root / "frames" / "interview-best.jpg"
+            other = root / "frames" / "nasa.jpg"
+            for item in (early, target, other):
+                item.write_bytes(b"thumbnail")
+            videos = [
+                {"id": "interview", "duration": 100},
+                {"id": "nasa", "duration": 50},
+                {"id": "missing", "duration": 20},
+            ]
+            frames = [
+                {"video_id": "interview", "timestamp": 0,
+                 "file": "frames/interview-begin.jpg"},
+                {"video_id": "interview", "timestamp": 15,
+                 "file": "frames/interview-best.jpg"},
+                {"video_id": "nasa", "timestamp": 10, "file": "frames/nasa.jpg"},
+            ]
+            found = preview_frames(videos, frames, root)
+            self.assertEqual(found["interview"], target)
+            self.assertEqual(found["nasa"], other)
+            self.assertIsNone(found["missing"])
+            frames.append({"video_id": "missing", "timestamp": 3,
+                           "file": "../../outside.jpg"})
+            self.assertIsNone(preview_frames(videos, frames, root)["missing"])
 
     def test_index_labels(self):
         self.assertIn("DEMO", format_index("/tmp/demo-v1"))
