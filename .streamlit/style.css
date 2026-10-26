@@ -199,3 +199,125 @@ div[data-testid="stVerticalBlockBorderWrapper"] {border-radius: 14px;}
   .stTabs [data-baseweb="tab"] {padding: 10px 7px; font-size: .78rem;}
   div[data-testid="stForm"] {padding: 14px;}
 }
+
+/* 2026-10 visual review: increase legibility, fix oversized top gutter. */
+/* Streamlit renders content in stMainBlockContainer on recent releases. */
+[data-testid="stMainBlockContainer"],
+[data-testid="stMain"] .block-container {
+  max-width: 1400px;
+  padding-top: 1.4rem;
+  padding-right: clamp(1.25rem, 2.8vw, 2.7rem);
+  padding-left: clamp(1.25rem, 2.8vw, 2.7rem);
+  padding-bottom: 3.5rem;
+}
+[data-testid="stSidebar"] {
+  min-width: 19rem;
+  background: #102B35;
+}
+[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
+  padding-top: 1.45rem;
+  padding-right: 1.15rem;
+  padding-left: 1.15rem;
+}
+[data-testid="stSidebar"] [data-testid="stWidgetLabel"] p {
+  font-size: .89rem;
+  font-weight: 680;
+  line-height: 1.4;
+}
+.vss-brand {
+  font-size: 1.25rem;
+  line-height: 1.2;
+  overflow-wrap: break-word;
+}
+.vss-sidebar-sub {
+  font-size: .85rem;
+  line-height: 1.55;
+  margin-bottom: .75rem;
+}
+.vss-hero {
+  padding: clamp(22px, 2.3vw, 35px);
+  border-radius: 17px;
+  margin-bottom: 14px;
+}
+.vss-hero h1 {
+  font-size: clamp(1.95rem, 3.1vw, 2.65rem);
+  letter-spacing: -.042em;
+  line-height: 1.13;
+}
+.vss-hero p {
+  font-size: 1rem;
+  line-height: 1.56;
+  margin-top: 9px;
+}
+.vss-hero-tags {margin-top: 16px;}
+.vss-tag {font-size:.79rem; padding: 6px 11px;}
+.vss-eyebrow {font-size: .77rem; margin-bottom: 9px;}
+.vss-stat {
+  min-height: 92px;
+  padding: 16px 19px;
+  margin-bottom: .35rem;
+  box-shadow: 0 2px 8px rgba(15,41,54,.025);
+}
+.vss-stat-label {font-size: .79rem;}
+.vss-stat-value {font-size: 1.83rem; line-height: 1.25; margin-top: 9px;}
+.vss-section-heading {font-size: 1.32rem; margin-bottom: 8px;}
+.vss-section-help {font-size: .94rem; line-height: 1.5; margin-bottom: 13px;}
+.stTabs [data-baseweb="tab-list"] {gap: clamp(6px,1.3vw,16px);}
+.stTabs [data-baseweb="tab"] {
+  font-size: .96rem;
+  padding: 13px clamp(8px, 1.25vw, 18px);
+}
+div[data-testid="stForm"] {
+  padding: 24px 27px;
+  box-shadow: 0 3px 20px rgba(16,47,61,.035);
+}
+div[data-testid="stForm"] [data-testid="stWidgetLabel"] p {
+  font-size: .95rem;
+  font-weight: 670;
+}
+[data-testid="stTextInput"] input {
+  font-size: .98rem;
+  min-height: 2.7rem;
+}
+.vss-video-title {
+  font-size: 1rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  font-weight: 750;
+}
+.vss-gallery-title {
+  font-size: 1.02rem;
+  font-weight: 740;
+  line-height: 1.4;
+  color: #173542;
+  min-height: 2.65rem;
+}
+.vss-gallery-meta {
+  font-size: .82rem;
+  color: #56707C;
+  margin-top: 6px;
+  margin-bottom: 3px;
+}
+[data-testid="stImage"] img {
+  border-radius: 10px;
+}
+[data-testid="stVerticalBlockBorderWrapper"] {
+  background: #FFF;
+  border-color: var(--vss-border);
+}
+@media (max-width: 760px) {
+  [data-testid="stSidebar"] {min-width: unset;}
+  [data-testid="stMainBlockContainer"],
+  [data-testid="stMain"] .block-container {
+    padding: 1rem .95rem 2.5rem;
+  }
+  .vss-hero { padding: 23px 20px; border-radius: 13px; }
+  .vss-hero h1 {font-size: 1.9rem;}
+  .vss-hero p {font-size: .91rem;}
+  .vss-stat { min-height: 74px; padding: 12px; }
+  .vss-stat-value {font-size: 1.42rem;}
+  .vss-section-heading {font-size: 1.1rem;}
+  .vss-section-help {font-size: .86rem;}
+  .stTabs [data-baseweb="tab"] {padding: 10px 6px; font-size: .82rem;}
+  div[data-testid="stForm"] {padding: 16px;}
+}
