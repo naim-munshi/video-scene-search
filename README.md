@@ -305,3 +305,39 @@ isolated model workers go to **stderr**, so other tools can safely capture
 or pipe successful JSON without mixing it with model progress logs.
 
 Release status and exact verification scope: [Validation](docs/VALIDATION.md), [Security Review](docs/SECURITY_REVIEW.md) and [Portfolio Completion](docs/PORTFOLIO_COMPLETION.md).
+
+
+## Local Studio UI (October 2026)
+
+The Streamlit front end now has a responsive video search workspace with a
+**collection selector** in the left sidebar, four panels (Search,
+Evaluate & annotate, Video library, Add videos), preview playback,
+timestamped search results and source/license details.
+
+**Select the actual indexed videos** from the sidebar:
+- portfolio-real-v1: Steve Wozniak interview and Tears of Steel (2 videos)
+- portfolio-real-v2: the same two plus NASA (3 videos), only if the
+  incremental third-video build was completed successfully
+- demo-index-isolated: three synthetic colored-card videos (9 windows);
+  do not confuse it with the real portfolio corpus
+
+To index NASA without losing the two-video corpus, follow
+[Add third video](docs/ADD_THIRD_VIDEO.md). Switching collections
+invalidates browser-session search results and annotations, but never
+modifies local on-disk indexes or media. The browser only offers indexes
+that have completed build.json files.
+
+```bash
+cd ~/video-scene-search
+source .venv/bin/activate
+git pull --ff-only origin MdNaim
+SCENE_INDEX=artifacts/portfolio-real-v2 python -m streamlit run app.py
+```
+
+The **Add videos** tab is for NEW, self-owned or licensed local MP4 clips
+with audio (at most 250 MiB). A successful upload verifies metadata and
+writes a fresh private manifest into ignored data/imports/. It **does not
+automatically index** that footage, merge it with an existing corpus or
+send it to GitHub; copy the printed ingest command into Terminal.
+This feature remains a local research convenience, not a public upload
+service or a media-malware sandbox. Keep the web server on 127.0.0.1.
