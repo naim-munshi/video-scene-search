@@ -5,6 +5,7 @@ read from a local temporary JSON file, not the process command line.
 """
 import argparse
 import os
+import sys
 from pathlib import Path
 
 VISUAL_MODEL = "sentence-transformers/clip-ViT-B-32"
@@ -49,7 +50,7 @@ def encode_many(queries, modality, output, device="auto"):
         pass
     selected = select_device(device, torch)
     model_id = VISUAL_MODEL if modality == "visual" else TEXT_MODEL
-    print(f"Query worker: {len(queries)} {modality} queries on {selected}", flush=True)
+    print(f"Query worker: {len(queries)} {modality} queries on {selected}", file=sys.stderr, flush=True)
     model = SentenceTransformer(model_id, device=selected)
     with torch.inference_mode():
         matrix = model.encode(queries, batch_size=8, normalize_embeddings=True,

@@ -4,6 +4,7 @@ Only call with locally generated frame manifests. Outputs float32 numpy vectors.
 """
 import argparse
 import os
+import sys
 from pathlib import Path
 
 
@@ -37,7 +38,7 @@ def encode(stage, frame_rows, output, device="cpu", batch_size=2):
                 images.append(image.convert("RGB"))
         print(f"CLIP worker: encoding frames {offset+1}-"
               f"{min(offset+16, len(frame_rows))}/{len(frame_rows)} on {device}",
-              flush=True)
+              file=sys.stderr, flush=True)
         with torch.inference_mode():
             embeddings = model.encode(
                 images, batch_size=batch_size, normalize_embeddings=True,
@@ -49,7 +50,7 @@ def encode(stage, frame_rows, output, device="cpu", batch_size=2):
             or not np.isfinite(vector).all()):
         raise ValueError("Visual encoder produced invalid vectors")
     np.save(output, vector, allow_pickle=False)
-    print(f"CLIP worker: saved {vector.shape[0]} embeddings", flush=True)
+    print(f"CLIP worker: saved {vector.shape[0]} embeddings", file=sys.stderr, flush=True)
 
 
 def main():

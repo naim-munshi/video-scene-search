@@ -119,7 +119,7 @@ def _encode_visual_subprocess(stage, frame_rows, device, batch_size):
            "--output", str(output), "--device", device,
            "--batch-size", str(batch_size)]
     print(f"Starting isolated visual encoder: device={device}, batch_size={batch_size}",
-          flush=True)
+          file=sys.stderr, flush=True)
     try:
         proc = subprocess.run(cmd, env=env, check=False)
         if proc.returncode != 0:
@@ -169,14 +169,14 @@ def build(manifest, output, whisper_model="base", language=None, frame_seconds=2
         whisper = WhisperModel(whisper_model, device="cpu", compute_type="int8")
         windows, frame_rows, transcript_rows = [], [], []
         for v in videos:
-            print(f"Processing {v['id']}: {v['title']}", flush=True)
+            print(f"Processing {v['id']}: {v['title']}", file=sys.stderr, flush=True)
             v["sha256"] = sha256(v["path"])
             duration, vw, samples = extract_frames(v["path"], v["id"], stage,
                                                    frame_seconds, window_seconds)
             v["duration"] = duration
             windows.extend(vw)
             frame_rows.extend(samples)
-            print(f"Decoded {v['id']}: {len(samples)} sampled frames; transcribing speech", flush=True)
+            print(f"Decoded {v['id']}: {len(samples)} sampled frames; transcribing speech", file=sys.stderr, flush=True)
             segments, info = whisper.transcribe(v["path"], language=language, vad_filter=True,
                                                 condition_on_previous_text=False)
             transcript = []
@@ -190,8 +190,8 @@ def build(manifest, output, whisper_model="base", language=None, frame_seconds=2
                     transcript_rows.append(row)
             v["detected_language"] = info.language
             write_json(stage / "transcripts" / f"{v['id']}.json", transcript)
-            print(f"Transcribed {v['id']}: {len(transcript)} speech segments", flush=True)
-        print(f"Encoding {len(frame_rows)} visual frames", flush=True)
+            print(f"Transcribed {v['id']}: {len(transcript)} speech segments", file=sys.stderr, flush=True)
+        print(f"Encoding {len(frame_rows)} visual frames", file=sys.stderr, flush=True)
         if isolate:
             vectors = _encode_visual_subprocess(stage, frame_rows, device, visual_batch_size)
         else:
@@ -210,7 +210,7 @@ def build(manifest, output, whisper_model="base", language=None, frame_seconds=2
         index = faiss.IndexFlatIP(vectors.shape[1])
         index.add(vectors)
         faiss.write_index(index, str(stage / "visual.faiss"))
-        print(f"Encoded visual frames; encoding {len(transcript_rows)} speech segments", flush=True)
+        print(f"Encoded visual frames; encoding {len(transcript_rows)} speech segments", file=sys.stderr, flush=True)
         if transcript_rows:
             from sentence_transformers import SentenceTransformer
             text = SentenceTransformer(TEXT_MODEL, device=device)
@@ -219,7 +219,7 @@ def build(manifest, output, whisper_model="base", language=None, frame_seconds=2
             index = faiss.IndexFlatIP(vectors.shape[1])
             index.add(vectors)
             faiss.write_index(index, str(stage / "transcript.faiss"))
-        print("Writing index files and build manifest", flush=True)
+        print("Writing index files and build manifest", file=sys.stderr, flush=True)
         write_json(stage / "windows.json", windows)
         write_json(stage / "frames.json", frame_rows)
         write_json(stage / "segments.json", transcript_rows)

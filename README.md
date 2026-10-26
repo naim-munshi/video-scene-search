@@ -296,3 +296,10 @@ The reported per-query runtime is an **amortized batch share**, not a claim
 about interactive single-query latency. Live search remains isolated per query
 to protect the Streamlit process from native model failures. Measure wall time
 on the target Mac before claiming throughput improvements.
+
+### Machine-readable CLI output
+
+`scene-search search` and `scene-search ingest` write their final JSON
+results to **stdout**. Progress messages from media processing and the
+isolated model workers go to **stderr**, so other tools can safely capture
+or pipe successful JSON without mixing it with model progress logs.
