@@ -246,13 +246,13 @@ comparison. See `docs/VALIDATION.md` for what was checked during this build.
 ```bash
 python -m unittest discover -s tests -v
 RUN_INTEGRATION=1 python -m unittest discover -s tests -v
-python scripts/real_model_smoke.py
+python scripts/real_model_smoke.py --index artifacts/demo-index-isolated --device mps
 ```
 
 The integration suite uses real PyAV/FAISS and Streamlit AppTest with fake
 encoders/ASR so it runs without model downloads. The final smoke script uses
 real CLIP, multilingual MiniLM and Whisper tiny on generated video/speech;
-it requires `ffmpeg` with the `flite` filter. Neither check measures real-world
+it supports an existing index with `--index` or generates its own synthetic videos using ordinary FFmpeg and the built-in macOS `say` fallback (`--generate`). Neither check measures real-world
 retrieval quality. Normal ingestion does not require that ffmpeg executable.
 
 ## Limitations and local security
@@ -303,3 +303,5 @@ on the target Mac before claiming throughput improvements.
 results to **stdout**. Progress messages from media processing and the
 isolated model workers go to **stderr**, so other tools can safely capture
 or pipe successful JSON without mixing it with model progress logs.
+
+Release status and exact verification scope: [Validation](docs/VALIDATION.md), [Security Review](docs/SECURITY_REVIEW.md) and [Portfolio Completion](docs/PORTFOLIO_COMPLETION.md).
