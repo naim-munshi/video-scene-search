@@ -13,7 +13,7 @@ class QueryBatchTests(unittest.TestCase):
     def test_validate_query_batch(self):
         validate_query_batch(["A red screen", "A voice talks"], "visual")
         for queries in ([], ["   "], ["a"] * 129, ["x" * 501]):
-            with self.assertRaisesRegex(ValueError, "Query"):
+            with self.assertRaisesRegex(ValueError, "[Qq]uery"):
                 validate_query_batch(queries, "visual")
         with self.assertRaisesRegex(ValueError, "Modality"):
             validate_query_batch(["word"], "hybrid")
