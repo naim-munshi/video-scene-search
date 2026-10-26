@@ -176,3 +176,23 @@ and hybrid queries return actual timestamps without crashing.**
 
 Verify that `artifacts/demo-index-isolated/build.json` exists first.
 Do not regenerate the synthetic media or overwrite the existing index.
+
+## Synthetic development results and fusion intervention (October 26, 2026)
+
+Original dev evaluation on six deterministic synthetic labels:
+Visual Recall@5 0.6667, MRR@5 0.6667; Transcript Recall@5 1.0,
+MRR@5 1.0; equal-weight Hybrid Recall@5 0.8333, MRR@5 0.75.
+Speech-oriented queries suffered because equal-weight RRF gave
+unrelated visual frames the same rank contribution as spoken evidence.
+This is a diagnosed ranking-policy mismatch, **not** a confirmed
+neural-model failure.
+
+The implementation now uses transparent query-intent weighted RRF for
+the hybrid mode. Explicit speech cues favor transcript ranks, explicit
+visual cues favor visual ranks, mixed cues retain equal contributions,
+and no-cue queries lean toward transcript while retaining visual
+candidates. The same function is called by CLI/UI and the evaluator.
+This is a rule-based heuristic chosen after inspecting development
+errors; **do not use held-out test data to tune it**. Evaluate dev
+again to determine whether it actually helps on Mac. Real footage with
+reviewed labels is necessary before deployment-quality accuracy claims.

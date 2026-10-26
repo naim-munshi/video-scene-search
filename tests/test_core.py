@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
-from scene_search.core import (aggregate_rank, fuse, make_windows, metrics,
+from scene_search.core import (aggregate_rank, fuse, hybrid_fuse, hybrid_weights, make_windows, metrics,
                                overlap, sha256, validate_labels, write_json)
 from scene_search.evaluate import evaluate
 from scene_search.pipeline import load_manifest
@@ -36,6 +36,36 @@ class CoreTests(unittest.TestCase):
     def test_rrf_consensus(self):
         result = fuse([("a", .99), ("b", .5)], [("b", .1), ("c", .09)])
         self.assertEqual(result[0][0], "b")
+
+    def test_hybrid_prioritizes_speech_only_query_without_losing_visual_fallback(self):
+        visual = [("wrong", 0.8), ("right", 0.7)]
+        transcript = [("right", 0.9), ("wrong", 0.2)]
+        self.assertEqual(hybrid_fuse("A voice talks about the deadline", visual, transcript)[0][0],
+                         "right")
+        self.assertEqual(hybrid_fuse("A voice talks about the deadline", visual, [])[0][0],
+                         "wrong")
+
+    def test_hybrid_keeps_visual_priority_when_visible_only(self):
+        visual = [("visible", 0.8), ("speech", 0.7)]
+        transcript = [("speech", 0.9), ("visible", 0.2)]
+        self.assertEqual(hybrid_fuse("The red screen", visual, transcript)[0][0], "visible")
+
+    def test_mixed_query_keeps_equal_weight_fusion(self):
+        visual = [("a", 1.0), ("b", 0.5)]
+        transcript = [("b", 1.0), ("c", 0.5)]
+        self.assertEqual(hybrid_weights("A red screen while narrator talks"), (1.0, 1.0))
+        self.assertEqual(hybrid_fuse("A red screen while narrator talks", visual, transcript),
+                         fuse(visual, transcript))
+
+    def test_undetermined_query_uses_transcript_prior(self):
+        visual = [("x", 0.9), ("right", 0.3)]
+        transcript = [("right", 0.9), ("x", 0.3)]
+        self.assertEqual(hybrid_fuse("project deadline", visual, transcript)[0][0], "right")
+
+    def test_invalid_rrf_weights_rejected(self):
+        for a, b in ((-1, 1), (float("nan"), 1), (0, 0)):
+            with self.assertRaises(ValueError):
+                fuse([], [], visual_weight=a, transcript_weight=b)
 
     def test_rrf_missing_speech(self):
         self.assertEqual([r[0] for r in fuse([("a", 1), ("b", .5)], [])], ["a", "b"])

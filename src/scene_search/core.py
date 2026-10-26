@@ -47,17 +47,68 @@ def aggregate_rank(scores, indices, rows):
     return sorted(best.items(), key=lambda x: (-x[1], x[0]))
 
 
-def fuse(visual, transcript, rank_constant=60):
-    if rank_constant <= 0:
+def fuse(visual, transcript, rank_constant=60, visual_weight=1.0,
+         transcript_weight=1.0):
+    """Weighted reciprocal rank fusion, without comparing modality cosine scores.
+
+    Existing two-argument calls retain equal-weight RRF. Weights are applied
+    only to ranking contributions; a missing modality never suppresses the other.
+    """
+    if not math.isfinite(rank_constant) or rank_constant <= 0:
         raise ValueError("RRF constant must be positive")
+    weights = (visual_weight, transcript_weight)
+    if any(not math.isfinite(w) or w < 0 for w in weights) or not any(weights):
+        raise ValueError("Fusion weights must be finite, nonnegative and nonzero")
     scores = {}
-    for ranking in (visual, transcript):
+    for ranking, weight in zip((visual, transcript), weights):
+        if weight == 0:
+            continue
         seen = set()
         for rank, (wid, _) in enumerate(ranking, 1):
             if wid not in seen:
-                scores[wid] = scores.get(wid, 0) + 1 / (rank_constant + rank)
+                scores[wid] = scores.get(wid, 0.0) + weight / (rank_constant + rank)
                 seen.add(wid)
     return sorted(scores.items(), key=lambda x: (-x[1], x[0]))
+
+
+def hybrid_weights(query):
+    """Transparent query-intent routing; a heuristic, not an accuracy claim.
+
+    Visual cues and spoken-content cues may co-occur. For a scene description
+    with no recognized visual cue, prioritize transcript evidence but retain
+    visual candidates. Speech-free corpora still use visual ranking alone.
+    """
+    import re
+    if not isinstance(query, str):
+        raise ValueError("Query must be a string")
+    q = query.casefold()
+    spoken = bool(re.search(
+        r"\b(says?|said|speaks?|speaking|spoken|talks?|talking|narrat(?:or|ion|es|es?)|"
+        r"voice|audio|speech|transcript|mentions?|discuss(?:es|ed|ing)?|"
+        r"explain(?:s|ed|ing)?|announc(?:es|ed|ing)|heard|hearing|quote|"
+        r"conversation|dialogue)\b", q))
+    visible = bool(re.search(
+        r"\b(visual|scene|screen|frame|shown?|showing|appears?|visible|"
+        r"colors?|colours?|red|blue|green|yellow|purple|orange|black|"
+        r"white|pink|wears?|wearing|standing|walking|sitting|people|"
+        r"person|woman|man|child|animal|car|train|building|table|laptop)\b", q))
+    if spoken and not visible:
+        return 0.2, 1.0
+    if visible and not spoken:
+        return 1.0, 0.35
+    if not spoken and not visible:
+        return 0.35, 1.0
+    return 1.0, 1.0
+
+
+def hybrid_fuse(query, visual, transcript, rank_constant=60):
+    if not transcript:
+        return fuse(visual, [], rank_constant=rank_constant)
+    if not visual:
+        return fuse([], transcript, rank_constant=rank_constant)
+    visual_weight, transcript_weight = hybrid_weights(query)
+    return fuse(visual, transcript, rank_constant=rank_constant,
+                visual_weight=visual_weight, transcript_weight=transcript_weight)
 
 
 def metrics(predicted, relevant, k=5):

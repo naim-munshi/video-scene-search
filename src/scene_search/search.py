@@ -5,7 +5,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from .core import MODES, aggregate_rank, fuse, read_json, sha256, write_json
+from .core import MODES, aggregate_rank, hybrid_fuse, read_json, sha256, write_json
 from .pipeline import VISUAL_MODEL, TEXT_MODEL
 
 
@@ -124,7 +124,7 @@ class SearchEngine:
             return self._rank(query, "visual")
         if mode == "transcript":
             return self._rank(query, "transcript")
-        return fuse(self._rank(query, "visual"), self._rank(query, "transcript"))
+        return hybrid_fuse(query, self._rank(query, "visual"), self._rank(query, "transcript"))
 
     def search(self, query, mode="hybrid", k=5):
         if not 1 <= k <= 100:

@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from time import perf_counter
 
-from .core import MODES, fuse, metrics, read_json, sha256, validate_labels, write_json
+from .core import MODES, hybrid_fuse, metrics, read_json, sha256, validate_labels, write_json
 
 
 def evaluate(engine, labels_path, output, split="test", k=5):
@@ -25,7 +25,7 @@ def evaluate(engine, labels_path, output, split="test", k=5):
         started = perf_counter()
         visual = engine.rankings(q["text"], "visual")
         transcript = engine.rankings(q["text"], "transcript")
-        ranks = {"visual": visual, "transcript": transcript, "hybrid": fuse(visual, transcript)}
+        ranks = {"visual": visual, "transcript": transcript, "hybrid": hybrid_fuse(q["text"], visual, transcript)}
         elapsed = perf_counter() - started
         for mode, ranking in ranks.items():
             predicted = [wid for wid, _ in ranking[:k]]
@@ -53,7 +53,8 @@ def evaluate(engine, labels_path, output, split="test", k=5):
                      if labels.get("label_provenance") == "synthetic_deterministic_not_manual"
                      else "Exact provided fixed-window IDs"),
         "aggregation": "Macro mean across queries", "rrf_constant": 60,
-        "candidate_policy": "All indexed rows, max cosine per window, full-rank RRF"})
+        "fusion_policy": "Heuristic query-intent weighted RRF; inspect hybrid_weights",
+        "candidate_policy": "All indexed rows, max cosine per window, intent-weighted full-rank RRF"})
     with (output / "metrics.csv").open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=list(totals[0]))
         writer.writeheader()

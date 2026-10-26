@@ -274,3 +274,15 @@ retrieval quality. Normal ingestion does not require that ffmpeg executable.
 - [Sentence Transformers image search](https://sbert.net/examples/sentence_transformer/applications/image-search/README.html)
 - [FAISS](https://github.com/facebookresearch/faiss)
 - [Streamlit video playback](https://docs.streamlit.io/develop/api-reference/media/st.video)
+
+## Synthetic development measurement (2026-10-26, pre-routing baseline)
+
+The user measured the original **equal-weight** RRF on 6 synthetic
+development queries. Metrics (Recall@5 / MRR@5) were visual
+0.6667 / 0.6667; transcript 1.0000 / 1.0000; hybrid 0.8333 / 0.7500.
+The results are synthetic fixtures with deterministic labels, **not**
+real-world retrieval accuracy. The intent-aware ranking implementation
+above changes that baseline, and requires a new dev run followed by one
+held-out test evaluation. Do not present the baseline numbers as the
+result of the revised implementation.
+
