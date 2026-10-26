@@ -95,3 +95,25 @@ python scripts/real_video_preflight.py --manifest data/portfolio-corpus.json
 ভিডিওগুলো থাকবে `data/videos/`-এ, manifest `data/portfolio-corpus.json`।
 Source size বড়; শুধু ২টি চাইলে `--only interview nasa` দাও।
 Details: `docs/VIDEO_SOURCES.md`। Attribution বাধ্যতামূলক।
+
+
+## ৭. Professional web UI ও real video select করা
+
+Browser-এ যদি Synthetic demo 1, 2, 3 দেখায় এবং ৯টি windows থাকে, তা
+হলে ভুল index খোলা আছে। ৩টি বাস্তব ভিডিওর build সম্পূর্ণ হলে:
+
+```bash
+cd ~/video-scene-search
+source .venv/bin/activate
+git pull --ff-only origin MdNaim
+SCENE_INDEX=artifacts/portfolio-real-v2 python -m streamlit run app.py
+```
+
+Sidebar-এর **Active video collection** থেকে portfolio-real-v2 বেছে নাও।
+যদি v2 না পাওয়া যায়, docs/ADD_THIRD_VIDEO.md অনুসারে NASA video append
+করো। v1-এ শুধু interview ও Tears of Steel আছে।
+
+নতুন UI-তে আছে Search, Evaluate & annotate, Video library এবং Add videos।
+Add videos tab কেবল নতুন licensed MP4 (250 MiB-এর কম) local-এ stage করে।
+এটি স্বয়ংক্রিয়ভাবে index তৈরি করে না। Tab-এর Terminal command চালিয়ে
+নতুন index তৈরি করতে হবে। তোমার NASA / interview / film আবার upload নয়।
