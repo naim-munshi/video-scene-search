@@ -182,7 +182,7 @@ with search_tab:
             thumb = result.get("thumbnail")
             if thumb and Path(thumb).is_file():
                 st.image(thumb, caption="Representative frame",
-                         use_container_width=True)
+                         width="stretch")
             st.markdown("**Speech near this moment**")
             st.write(result.get("transcript") or
                      "No transcript overlaps this window.")
@@ -196,7 +196,7 @@ with search_tab:
               "Score": round(r["score"], 5),
               "Window ID": r["id"]}
              for i, r in enumerate(results)],
-            hide_index=True, use_container_width=True)
+            hide_index=True, width="stretch")
     else:
         st.markdown("#### Explore this collection")
         st.caption("Browse indexed footage below, or search for a specific moment above.")
@@ -207,7 +207,7 @@ with search_tab:
                 with st.container(border=True):
                     thumbnail = thumbnails.get(video["id"])
                     if thumbnail is not None:
-                        st.image(str(thumbnail), use_container_width=True)
+                        st.image(str(thumbnail), width="stretch")
                     else:
                         st.caption("No representative frame available")
                     video_title = escape(str(video.get("title", "Untitled")))
@@ -322,7 +322,7 @@ with library_tab:
         st.dataframe(
             [{"Window": w["id"], "From": readable_time(w["start"]),
               "To": readable_time(w["end"])} for w in video_windows],
-            hide_index=True, use_container_width=True)
+            hide_index=True, width="stretch")
 
 with import_tab:
     st.markdown('<div class="vss-section-heading">Add a video from this Mac</div>',

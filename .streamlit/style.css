@@ -321,3 +321,26 @@ div[data-testid="stForm"] [data-testid="stWidgetLabel"] p {
   .stTabs [data-baseweb="tab"] {padding: 10px 6px; font-size: .82rem;}
   div[data-testid="stForm"] {padding: 16px;}
 }
+
+/* Safari accessibility fix: tabs must remain legible on light backgrounds. */
+.stTabs [data-baseweb="tab"] {
+  color: #254653 !important;
+  opacity: 1 !important;
+  font-weight: 700;
+}
+.stTabs [data-baseweb="tab"] p,
+.stTabs [data-baseweb="tab"] span {
+  color: inherit !important;
+  opacity: 1 !important;
+}
+.stTabs [data-baseweb="tab"][aria-selected="true"],
+.stTabs [data-baseweb="tab"][aria-selected="true"] p,
+.stTabs [data-baseweb="tab"][aria-selected="true"] span {
+  color: #087568 !important;
+  font-weight: 800;
+}
+.stTabs [data-baseweb="tab"]:focus-visible {
+  outline: 2px solid #087568;
+  outline-offset: -2px;
+  border-radius: 6px;
+}
