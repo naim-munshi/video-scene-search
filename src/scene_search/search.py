@@ -16,14 +16,17 @@ def _should_isolate_query(mode, platform=None):
                                     (platform or sys.platform) == "darwin")
 
 
-def _query_embedding_subprocess(query, modality, device):
-    """Return a validated query vector or a useful error when native code fails."""
+def _query_embeddings_subprocess(queries, modality, device):
+    """Encode many queries with a single isolated ML model load."""
     import numpy as np
+    from .query_worker import validate_query_batch
+
+    validate_query_batch(queries, modality)
     with tempfile.TemporaryDirectory(prefix="scene-search-query-") as td:
         temporary = Path(td)
-        prompt = temporary / "query.json"
-        result = temporary / "embedding.npy"
-        write_json(prompt, {"query": query, "modality": modality})
+        prompt = temporary / "queries.json"
+        result = temporary / "embeddings.npy"
+        write_json(prompt, {"queries": queries, "modality": modality})
         env = os.environ.copy()
         for key in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS"):
             env[key] = "1"
@@ -43,10 +46,15 @@ def _query_embedding_subprocess(query, modality, device):
         if not result.is_file():
             raise RuntimeError("Query encoder produced no embedding file")
         vector = np.load(result, allow_pickle=False)
-        if (vector.ndim != 2 or vector.shape[0] != 1
+        if (vector.ndim != 2 or vector.shape[0] != len(queries)
                 or vector.shape[1] < 1 or not np.isfinite(vector).all()):
             raise ValueError("Invalid query embedding dimensions or values")
         return np.ascontiguousarray(vector, dtype="float32")
+
+
+def _query_embedding_subprocess(query, modality, device):
+    """Single-query compatibility path for UI and CLI search."""
+    return _query_embeddings_subprocess([query], modality, device)
 
 
 class SearchEngine:
@@ -113,6 +121,23 @@ class SearchEngine:
                              f"FAISS index dimension {index.d}")
         scores, indices = index.search(vector, index.ntotal)
         return aggregate_rank(scores[0], indices[0], rows)
+
+    def rankings_batch(self, queries, modality):
+        """Evaluate many queries of one modality with one model load on macOS."""
+        from .query_worker import validate_query_batch
+        validate_query_batch(queries, modality)
+        if not self.isolate:
+            return [self.rankings(query, modality) for query in queries]
+        if modality == "transcript" and self.text_index is None:
+            return [[] for _ in queries]
+        matrix = _query_embeddings_subprocess(queries, modality, self.device)
+        index, rows = ((self.visual_index, self.frames) if modality == "visual"
+                       else (self.text_index, self.segments))
+        if matrix.shape[1] != index.d:
+            raise ValueError("Query matrix dimension differs from FAISS index")
+        scores, indices = index.search(matrix, index.ntotal)
+        return [aggregate_rank(row_scores, row_indices, rows)
+                for row_scores, row_indices in zip(scores, indices)]
 
     def rankings(self, query, mode="hybrid"):
         query = query.strip()

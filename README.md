@@ -286,3 +286,13 @@ above changes that baseline, and requires a new dev run followed by one
 held-out test evaluation. Do not present the baseline numbers as the
 result of the revised implementation.
 
+
+### Evaluation performance
+
+`scene-search evaluate` batches all 6 development (or 18 held-out test)
+query texts for each modality. This reuses one native model load per modality
+per evaluation, rather than 2 × number-of-queries subprocess launches.
+The reported per-query runtime is an **amortized batch share**, not a claim
+about interactive single-query latency. Live search remains isolated per query
+to protect the Streamlit process from native model failures. Measure wall time
+on the target Mac before claiming throughput improvements.

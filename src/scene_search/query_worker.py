@@ -23,18 +23,25 @@ def select_device(requested, torch_module):
     return requested
 
 
-def encode_query(query, modality, output, device="auto"):
-    # Configure BLAS/OpenMP before loading torch and model libraries.
+def validate_query_batch(queries, modality):
+    if modality not in ("visual", "transcript"):
+        raise ValueError("Modality must be visual or transcript")
+    if not isinstance(queries, list) or not 1 <= len(queries) <= 128:
+        raise ValueError("Query batch must contain 1–128 queries")
+    if any(not isinstance(query, str) or not 1 <= len(query.strip()) <= 500
+           for query in queries):
+        raise ValueError("Every query must contain 1–500 characters")
+
+
+def encode_many(queries, modality, output, device="auto"):
+    """Encode 1–128 queries with one model load and one worker process."""
+    validate_query_batch(queries, modality)
     for key in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS"):
         os.environ[key] = "1"
     import numpy as np
     import torch
     from sentence_transformers import SentenceTransformer
 
-    if modality not in ("visual", "transcript"):
-        raise ValueError("Modality must be visual or transcript")
-    if not isinstance(query, str) or not 1 <= len(query.strip()) <= 500:
-        raise ValueError("Query length must be 1–500 characters")
     torch.set_num_threads(1)
     try:
         torch.set_num_interop_threads(1)
@@ -42,15 +49,21 @@ def encode_query(query, modality, output, device="auto"):
         pass
     selected = select_device(device, torch)
     model_id = VISUAL_MODEL if modality == "visual" else TEXT_MODEL
-    print(f"Query worker: {modality} model on {selected}", flush=True)
+    print(f"Query worker: {len(queries)} {modality} queries on {selected}", flush=True)
     model = SentenceTransformer(model_id, device=selected)
     with torch.inference_mode():
-        matrix = model.encode([query], batch_size=1, normalize_embeddings=True,
+        matrix = model.encode(queries, batch_size=8, normalize_embeddings=True,
                               convert_to_numpy=True, show_progress_bar=False)
     matrix = np.asarray(matrix, dtype="float32")
-    if matrix.ndim != 2 or matrix.shape[0] != 1 or not np.isfinite(matrix).all():
-        raise ValueError("Invalid query embedding")
+    if (matrix.ndim != 2 or matrix.shape[0] != len(queries)
+            or not np.isfinite(matrix).all()):
+        raise ValueError("Invalid query embedding matrix")
     np.save(output, matrix, allow_pickle=False)
+
+
+def encode_query(query, modality, output, device="auto"):
+    """Backward-compatible single-query entry point."""
+    return encode_many([query], modality, output, device)
 
 
 def main():
@@ -62,7 +75,10 @@ def main():
     args = parser.parse_args()
     from .core import read_json
     data = read_json(args.query_json)
-    encode_query(data["query"], data["modality"], args.output, args.device)
+    if "queries" in data:
+        encode_many(data["queries"], data["modality"], args.output, args.device)
+    else:
+        encode_query(data["query"], data["modality"], args.output, args.device)
 
 
 if __name__ == "__main__":

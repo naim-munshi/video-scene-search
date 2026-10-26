@@ -15,7 +15,7 @@
 ## Changed after that baseline
 
 - Hybrid now selects transparent rank weights by query-intent cues
-- The evaluator uses exactly the same `hybrid_fuse` function as live search
+- The evaluator uses exactly the same `hybrid_fuse` function as live search\n- The evaluator batches query embeddings so each model initializes once per split
 - Added metadata/index consistency check and security documentation
 
 **These changes require a fresh Mac dev evaluation.** None of the above
