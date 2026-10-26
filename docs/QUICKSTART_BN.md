@@ -62,3 +62,19 @@ scene-search evaluate --labels evaluation/labels.json --split test --output repo
 
 একই output folder দ্বিতীয়বার overwrite হবে না। নতুন run হলে `test-v2` ব্যবহার করবে।
 এই project-এর সঙ্গে বাস্তব ভিডিও বা বানানো accuracy সংখ্যা দেওয়া হয়নি।
+
+## ৫. Mac-এর verified demo index ও fusion update
+
+আগে তৈরি `artifacts/demo-index-isolated` মুছে ফেলবে না।
+নতুন কোড এবং integrity check চালাও:
+
+```bash
+git pull --ff-only origin MdNaim
+python -m pip install -e .
+python scripts/acceptance_check.py --index artifacts/demo-index-isolated
+scene-search search "project deadline" --index artifacts/demo-index-isolated --mode hybrid --device mps
+scene-search evaluate --index artifacts/demo-index-isolated --labels evaluation/demo-labels-isolated.json --split dev --output reports/demo-dev-intent-v1 --device mps
+cat reports/demo-dev-intent-v1/report.md
+```
+
+এরপর বাস্তব ভিডিও ও মানুষ যাচাই করা label ছাড়া retrieval accuracy দাবি করবে না।
