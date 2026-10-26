@@ -103,6 +103,23 @@ class CoreTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate_labels(labels, make_windows("v", 10))
 
+    def test_invalid_manifest_shapes_rejected_before_native_processing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = root / "manifest.json"
+            for data in ([], {"videos": "not a list"}, {"videos": [None]}):
+                write_json(path, data)
+                with self.assertRaises(ValueError):
+                    load_manifest(path)
+            write_json(path, {"videos": [{"id": "clip", "title": "ok",
+                "source": "self", "license": "owned", "attribution": "author",
+                "rights_confirmed": True}]})
+            with self.assertRaisesRegex(ValueError, "video path"):
+                load_manifest(path)
+
+    def test_out_of_range_faiss_rows_ignored(self):
+        self.assertEqual(aggregate_rank([0.9], [12], [{"window_ids": ["valid"]}]), [])
+
     def test_rights_confirmation_required(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "manifest.json"

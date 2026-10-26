@@ -58,7 +58,8 @@ search_tab, annotation_tab = st.tabs(["Search", "Annotate before evaluating"])
 with search_tab:
     with st.form("search_form"):
         query = st.text_input("Describe a moment", placeholder="Two people talking at a table", max_chars=500)
-        mode = st.radio("Search method", ["visual", "transcript", "hybrid"], horizontal=True)
+        mode = st.radio("Search method", ["hybrid", "visual", "transcript"], horizontal=True)
+        st.caption("Hybrid balances image and spoken evidence using transparent query-intent rules.")
         submitted = st.form_submit_button("Search", type="primary")
     if submitted:
         try:

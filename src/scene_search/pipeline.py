@@ -18,20 +18,27 @@ TEXT_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 def load_manifest(path):
     path = Path(path).resolve()
     data = read_json(path)
-    videos = data.get("videos", [])
-    if not videos:
-        raise ValueError("Manifest must contain at least one video")
+    if not isinstance(data, dict):
+        raise ValueError("Manifest must be a JSON object")
+    videos = data.get("videos")
+    if not isinstance(videos, list) or not 1 <= len(videos) <= 200:
+        raise ValueError("Manifest must contain 1–200 video entries")
     ids = set()
     for v in videos:
+        if not isinstance(v, dict):
+            raise ValueError("Every video entry must be an object")
         vid = v.get("id", "")
-        if not re.fullmatch(r"[A-Za-z0-9_-]+", vid) or vid in ids:
+        if not isinstance(vid, str) or not re.fullmatch(r"[A-Za-z0-9_-]+", vid) or vid in ids:
             raise ValueError("Video IDs must be unique and contain only letters, digits, _ or -")
         ids.add(vid)
         if not all(str(v.get(k, "")).strip() for k in ("title", "license", "source", "attribution")):
             raise ValueError(f"Missing provenance for {vid}")
         if v.get("rights_confirmed") is not True:
             raise ValueError(f"Confirm permission/licensing for {vid} before ingestion")
-        p = (path.parent / v["path"]).resolve()
+        media_path = v.get("path")
+        if not isinstance(media_path, str) or not media_path.strip() or "\\x00" in media_path:
+            raise ValueError(f"Missing or invalid video path for {vid}")
+        p = (path.parent / media_path).resolve()
         if not p.is_file():
             raise ValueError(f"Video missing: {p}")
         v["path"] = str(p)

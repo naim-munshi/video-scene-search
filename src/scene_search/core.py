@@ -40,7 +40,7 @@ def aggregate_rank(scores, indices, rows):
     """Max cosine score per distinct window, deterministic ties."""
     best = {}
     for score, idx in zip(scores, indices):
-        if idx < 0:
+        if not 0 <= int(idx) < len(rows):
             continue
         for window_id in rows[int(idx)]["window_ids"]:
             best[window_id] = max(best.get(window_id, -math.inf), float(score))

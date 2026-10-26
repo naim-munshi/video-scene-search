@@ -19,7 +19,7 @@ untrusted networks or add a public upload endpoint without separate design.
 | Native crash | Mac visual embedding and search query workers run in subprocesses | Worker itself may crash; PyTorch/FFmpeg are native dependencies |
 | Command injection | Subprocess calls use argument vectors, not shell interpolation; search queries pass via local JSON | Only use locally trusted video/media files |
 | Search/annotation | Query length restricted to 500 characters; labels check duplicates and build hash | No cross-user permission management; this is offline |
-| Video limits | Real-video preflight checks duration, stream presence, and codec | It is advisory; malformed large videos can exhaust memory/disk |
+| Video limits | Manifest input validates structure, caps entries at 200, and real-video preflight checks duration, streams and codec | The preflight is advisory; malformed/oversized videos can still exhaust resources |
 | External dependencies | Models downloaded from Hugging Face | Exact model revisions/weights are not pinned or signed in v0.1 |
 | Remote surface | Local Streamlit server; XSRF enabled; usage stats disabled | Public reverse proxies, shared hosts, and untrusted origins are unsupported |
 
