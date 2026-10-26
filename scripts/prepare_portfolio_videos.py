@@ -6,6 +6,7 @@ stay in ignored data/. Review third-party rights before republishing footage.
 
 Examples:
     python scripts/prepare_portfolio_videos.py --plan
+    python scripts/prepare_portfolio_videos.py --only interview film --local-only
     python scripts/prepare_portfolio_videos.py --only interview nasa
     python scripts/prepare_portfolio_videos.py
 """
@@ -61,6 +62,25 @@ VIDEOS = {
     },
 }
 USER_AGENT = "VideoSceneSearchPortfolio/0.1 (https://github.com/naim-munshi/video-scene-search; local education)"
+
+# Aliases used by the direct curl commands in the user-facing quickstart.
+# Never delete user-downloaded originals; conversion outputs separate MP4s.
+LOCAL_SOURCE_NAMES = {
+    "interview": ("interview.webm", "Interview_with_Steve_Wozniak.webm"),
+    "film": ("tears_of_steel.webm", "Tears_of_Steel_1080p.webm"),
+    "nasa": ("nasa_apollo15.mp4",),
+}
+
+
+def find_local_source(key, videos_dir):
+    """Prefer a validated, explicitly named existing local download."""
+    if key not in LOCAL_SOURCE_NAMES:
+        raise ValueError("Unknown video source")
+    for name in LOCAL_SOURCE_NAMES[key]:
+        candidate = Path(videos_dir) / name
+        if candidate.is_file() and candidate.stat().st_size >= 100_000:
+            return candidate
+    return None
 
 
 def manifest_entry(item):
@@ -140,7 +160,7 @@ def probe(path):
     return duration
 
 
-def prepare(selected, root):
+def prepare(selected, root, local_only=False):
     if not shutil.which("ffmpeg") or not shutil.which("ffprobe"):
         raise RuntimeError("Install FFmpeg first: brew install ffmpeg")
     root = Path(root).resolve()
@@ -156,15 +176,23 @@ def prepare(selected, root):
             duration = probe(destination)
             completed.append((key, duration))
             continue
+        local_source = find_local_source(key, videos_dir)
+        if local_source is None and local_only:
+            expected = ", ".join(LOCAL_SOURCE_NAMES[key])
+            raise ValueError(f"Local video source missing for {key}; expected {expected} in {videos_dir}")
         free_bytes = shutil.disk_usage(videos_dir).free
         if free_bytes < 1_500_000_000:
             raise RuntimeError("Need at least 1.5 GB free space to download/convert source media")
         with tempfile.TemporaryDirectory(prefix=".media-import-", dir=videos_dir) as temp:
             work = Path(temp)
-            source_file = work / ("source.webm" if item["url"].endswith("webm") else "source.mp4")
             converted = work / "ready.mp4"
-            print(f"Downloading {item['title']} from {item['source_page']}", flush=True)
-            download(item["url"], source_file)
+            if local_source is not None:
+                source_file = local_source
+                print(f"Using existing local download: {source_file}", flush=True)
+            else:
+                source_file = work / ("source.webm" if item["url"].endswith("webm") else "source.mp4")
+                print(f"Downloading {item['title']} from {item['source_page']}", flush=True)
+                download(item["url"], source_file)
             original_duration = probe(source_file)
             print(f"Encoding 480p H.264/AAC ({original_duration:.0f}s)", flush=True)
             subprocess.run([
@@ -201,6 +229,8 @@ def main():
     parser.add_argument("--root", default="data",
                         help="Local destination (ignored by git by default)")
     parser.add_argument("--plan", action="store_true", help="Print sources without downloading")
+    parser.add_argument("--local-only", action="store_true",
+                        help="Use existing local WebM/MP4 files; never download from the internet")
     args = parser.parse_args()
     try:
         if args.plan:
@@ -208,7 +238,7 @@ def main():
                       "manifest_preview": make_manifest(args.only),
                       "note": "No media downloaded; CC BY attribution required"}
         else:
-            report = prepare(args.only, args.root)
+            report = prepare(args.only, args.root, local_only=args.local_only)
     except (ValueError, OSError, RuntimeError, subprocess.CalledProcessError,
             subprocess.TimeoutExpired, json.JSONDecodeError) as exc:
         parser.exit(2, f"Video preparation failed: {exc}\n")
