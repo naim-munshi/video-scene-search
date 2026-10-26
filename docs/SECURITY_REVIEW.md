@@ -54,3 +54,19 @@ Source/static review and automated unit checks are available.
 The user's Mac demonstrated successful isolated MPS ingestion and transcript/
 hybrid retrieval on synthetic videos. A separate human browser playback
 assessment, real-video evaluation and penetration test are **not yet done**.
+
+
+## New UI import surface (October 2026)
+
+A new **local-only** MP4 importer stores each clip in a randomized folder
+inside ignored data/imports/ (never overwriting existing indexes). It
+requires a declared source, license, attribution, title and permission;
+accepts at most 250 MiB; verifies video/audio presence and finite media
+duration with ffprobe; uses a disk-space floor; and cleans up partial
+files on failures. Native processing is **not triggered** on HTTP upload;
+index creation needs a separate local Terminal command.
+
+Uploaded material is still untrusted bytes, even with a valid suffix and
+ffprobe metadata. This is a loopback-only personal prototype. Do **not**
+expose Streamlit publicly; authentication, sandboxed media handling,
+malware scanning, quotas, deletion controls and secure hosting are absent.
