@@ -36,7 +36,7 @@ def load_manifest(path):
         if v.get("rights_confirmed") is not True:
             raise ValueError(f"Confirm permission/licensing for {vid} before ingestion")
         media_path = v.get("path")
-        if not isinstance(media_path, str) or not media_path.strip() or "\\x00" in media_path:
+        if not isinstance(media_path, str) or not media_path.strip() or chr(0) in media_path:
             raise ValueError(f"Missing or invalid video path for {vid}")
         p = (path.parent / media_path).resolve()
         if not p.is_file():
