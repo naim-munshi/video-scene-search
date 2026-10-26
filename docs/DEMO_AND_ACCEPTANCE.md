@@ -14,7 +14,7 @@ Install FFmpeg on macOS with `brew install ffmpeg`. Verify with
 
 ```bash
 python scripts/synthetic_demo.py generate
-scene-search ingest --manifest data/demo-corpus.json --output artifacts/demo-index --whisper-model tiny --language en
+scene-search ingest --manifest data/demo-corpus.json --output artifacts/demo-index-new --whisper-model tiny --language en
 python scripts/synthetic_demo.py labels --index artifacts/demo-index
 scene-search evaluate --index artifacts/demo-index --labels evaluation/demo-labels.json --split dev --output reports/demo-dev
 scene-search evaluate --index artifacts/demo-index --labels evaluation/demo-labels.json --split test --output reports/demo-test
@@ -95,7 +95,7 @@ metrics. The generated audio is synthetic voice, not human conversation.
 | Code compiles and pure tests pass | GitHub Actions core job | Automated |
 | Three synthetic 30s MP4s generated with speech | `test_demo.py` on FFmpeg/flite hosts | Automated where supported |
 | Native FAISS/PyAV/UI integration | Opt-in `RUN_INTEGRATION=1` | Needs full ML install |
-| Real pretrained-model ingestion | `scripts/real_model_smoke.py` | Previously validated on Linux per `docs/VALIDATION.md`; rerun locally |
+| Real pretrained-model ingestion | `scripts/real_model_smoke.py` | Historical Linux smoke and user Mac synthetic search observed; rerun revised code |
 | 2–3 authentic 10–20min video recordings | Media with provenance and confirmed permission | **Not supplied** |
 | Manual annotation and real-data Recall@5 | `reports/real-test-v1/` | **Not measured** |
 | Demo with real scenes | Licensed screen capture and timing checks | **Not recorded** |
@@ -117,7 +117,7 @@ Objective-C runtime class warnings and a native segmentation fault during a
 three-video synthetic demo. The ingestion decoder now uses **PyAV and Pillow**,
 with no OpenCV import. Optional native integration-test video creation also
 uses PyAV. This avoids that specific duplicate-library loading path, but it
-is **not yet verified on the user's Mac** and does not establish the cause of
+was later tested successfully for synthetic ingestion on the user's Mac and does not establish the cause of
 all possible native crashes. The build uses an atomic staging directory, so
 a crash must not leave a published complete index.
 
@@ -137,7 +137,7 @@ If segmentation fault continues, retain all output including the printed
 `Decoded`, `Transcribed`, `Encoding`, and `Writing` phase markers, and the
 result from `python -X faulthandler -m scene_search.cli ingest ...` against
 a new unique output path. Do not state that the conflict is definitely fixed
-until a successful Mac run is observed.
+until a successful Mac run of the revised configuration is observed.
 
 ## Apple Silicon CLIP convolution crash: isolated encoder (October 2026)
 
