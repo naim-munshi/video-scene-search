@@ -44,3 +44,29 @@ def format_index(path):
     name = Path(path).name.replace("-", " ").replace("_", " ")
     prefix = "DEMO" if "demo" in Path(path).name.lower() else "LOCAL"
     return f"{prefix}  ·  {name}"
+
+
+def preview_frames(videos, frames, index_root):
+    """Pick a representative existing indexed frame for each video.
+
+    Prefer a frame near 15% of the video duration, avoiding opening shots.
+    Paths must stay within the trusted, completed index directory.
+    """
+    root = Path(index_root).resolve()
+    previews = {}
+    for video in videos:
+        candidates = [f for f in frames if f.get("video_id") == video["id"]]
+        if not candidates:
+            previews[video["id"]] = None
+            continue
+        target = float(video.get("duration", 0)) * .15
+        order = sorted(candidates, key=lambda frame:
+                       abs(float(frame["timestamp"]) - target))
+        image = None
+        for frame in order:
+            path = (root / frame["file"]).resolve()
+            if path.is_relative_to(root) and path.is_file():
+                image = path
+                break
+        previews[video["id"]] = image
+    return previews
