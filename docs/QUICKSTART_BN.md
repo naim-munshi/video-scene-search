@@ -78,3 +78,20 @@ cat reports/demo-dev-intent-v1/report.md
 ```
 
 এরপর বাস্তব ভিডিও ও মানুষ যাচাই করা label ছাড়া retrieval accuracy দাবি করবে না।
+
+## ৬. Free-source ভিডিও সংগ্রহ
+
+৩টি অনুমতিসহ ভিডিওর download script যোগ হয়েছে। Mac-এ:
+
+```bash
+cd ~/video-scene-search
+source .venv/bin/activate
+git pull --ff-only origin MdNaim
+python scripts/prepare_portfolio_videos.py --plan
+python scripts/prepare_portfolio_videos.py
+python scripts/real_video_preflight.py --manifest data/portfolio-corpus.json
+```
+
+ভিডিওগুলো থাকবে `data/videos/`-এ, manifest `data/portfolio-corpus.json`।
+Source size বড়; শুধু ২টি চাইলে `--only interview nasa` দাও।
+Details: `docs/VIDEO_SOURCES.md`। Attribution বাধ্যতামূলক।
