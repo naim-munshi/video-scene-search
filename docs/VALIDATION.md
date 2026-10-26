@@ -1,50 +1,80 @@
-# Validation record
+# Validation record — October 26, 2026
 
-Validated in the hosted Linux/Python 3.12 environment recorded in
-`validation-environment.json`. Apple Silicon/MPS and the user's own videos
-were not accessible and were not tested.
+## Latest GitHub Actions
 
-| Check | Result | Scope |
-| --- | --- | --- |
-| Python compilation | PASS | Package, app and tests |
-| Editable package installation / CLI help | PASS | Entry point and packaging |
-| Core tests | PASS, 18 tests | Windows, RRF, metrics, rights gate, annotation validation and reports |
-| Integration tests | PASS, 3 tests | Real OpenCV and FAISS, mocked ASR/embeddings, persistent reload, corruption rejection, Streamlit search/annotation |
-| Streamlit empty-index state | PASS | Clear setup instructions without traceback |
-| Real pretrained model smoke test | PASS | Whisper tiny CPU/int8, CLIP ViT-B/32 and multilingual MiniLM, synthetic 16s video with synthesized speech |
-| Real-corpus Recall@5 comparison | NOT RUN | Needs permission-cleared videos and manually reviewed labels |
-| Browser playback visually/audio reviewed | NOT RUN | AppTest validates video rendering metadata, not a human browser viewing/listening session |
-| macOS / MPS runtime | NOT RUN | CPU/Linux checked only |
+The verified core run at commit `6774107` compiled the Python source,
+app, scripts and tests, then ran **51 tests: 46 passed, 5 skipped**.
+The five skips cover optional FFmpeg and native ML integration checks in
+the lightweight CI environment. These automated counts are not
+measurements of model accuracy.
 
-The real-model smoke test generated a red/blue MP4 with ffmpeg and a speech
-track using flite. It verified eight frames, nonempty ASR segments, index
-persistence and timestamped results from all three retrieval modes. It is a
-wiring test, **not** semantic retrieval-quality evidence. No Recall@5 from
-synthetic fixtures should be used on the CV or portfolio results table.
+The tests cover windows, rights checks, annotation integrity, RRF fusion,
+batch evaluator behavior, worker crash containment, metadata validation,
+index integrity and timestamp sampling.
 
-The first real-model run exposed `TypeError: open() got an unexpected keyword
-argument 'metadata_errors'` with faster-whisper 1.2.1 and PyAV 19.0.2. Constraining
-PyAV to the tested compatible range and installing 15.1.0 resolved this failure;
-the same real-model smoke test then passed.
+## User Mac evidence
 
-Reproduce:
+On Apple Silicon / macOS 26.5.2, Python 3.12 and FFmpeg 9.0.2, the supplied
+terminal logs confirm:
+- Three 30-second synthetic MP4 videos with synthesized speech were generated
+- The completed synthetic index was found on disk
+- Transcript and hybrid search returned timestamped results via MPS workers
+- Streamlit started on loopback at 127.0.0.1:8501
+- The **old equal-weight** model on six synthetic development queries achieved
+  visual Recall@5/MRR@5 0.6667/0.6667, transcript 1.0/1.0,
+  hybrid 0.8333/0.75
+
+These are synthetic deterministic labels, **not real-world quality
+metrics**. The intent-aware hybrid routing and batch evaluation changes
+were introduced after the measurements, so their Mac accuracy and runtime
+are not verified by these older logs. A working web server does not
+establish human-verified playback.
+
+## Historical Linux smoke
+
+The reference `validation-environment.json` documents an earlier hosted
+Linux test of an older OpenCV version. Its 18 core and 3 optional mocked
+integration checks passed, as did a small synthetic real-model smoke.
+That environment does not validate the revised PyAV/MPS implementation.
+
+The earlier faster-whisper/PyAV 19 incompatibility was addressed by
+constraining PyAV to version <16. The new smoke script supports an
+existing index and does not require FFmpeg's optional flite filter.
+
+## Reproduce on Mac
 
 ```bash
-python -m compileall -q src app.py tests
+cd ~/video-scene-search
+source .venv/bin/activate
+git pull --ff-only origin MdNaim
+python -m pip install -e .
+python -m compileall -q src app.py scripts tests
 python -m unittest discover -s tests -v
-RUN_INTEGRATION=1 python -m unittest discover -s tests -v
-python scripts/real_model_smoke.py
+python scripts/acceptance_check.py --index artifacts/demo-index-isolated
+python scripts/real_model_smoke.py --index artifacts/demo-index-isolated --device mps
+scene-search evaluate --index artifacts/demo-index-isolated \
+  --labels evaluation/demo-labels-isolated.json --split dev \
+  --output reports/demo-dev-intent-v1 --device mps
 ```
 
-The last command requires ffmpeg with libflite and cached/downloadable model
-weights. Unit tests do not require downloads. Integration tests replace model
-classes explicitly; the real-model script does not mock models.
+The metadata checker is pure Python. The smoke script exercises real
+pretrained models and isolated workers but does not measure semantic
+accuracy. Optional full native integration tests can be run with
+`RUN_INTEGRATION=1 python -m unittest discover -s tests -v` when ML
+dependencies are installed; they have not been rerun in the current
+user Mac evidence.
 
-Remaining acceptance work:
+## Remaining release gates
 
-1. Add 2–3 permission-cleared, constant-frame-rate speaking videos.
-2. Ingest with the chosen Whisper model (default base; smoke used tiny).
-3. Review transcripts and timestamp alignment; verify playback in the Mac browser.
-4. Write and manually annotate 24 queries before looking at rankings.
-5. Use dev queries to fix configuration, then run held-out test evaluation.
-6. Diagnose 3–5 actual failure cases and publish only measured results.
+1. Repeat development evaluation on the new hybrid ranking policy.
+2. Watch and listen to timestamped playback in the actual browser.
+3. Evaluate 2–3 permission-cleared 10–20-minute real conversation videos.
+4. Manually annotate 24 queries (6 dev and 18 held-out test), before
+   inspecting their rankings.
+5. Freeze the configuration and run the held-out real-video test once.
+6. Record a short demo using footage/audio licensed for publication.
+7. Build authentication, isolation, quotas and privacy operations before
+   hosting for multiple users.
+
+Current scope: **working local synthetic proof of concept, not a validated
+production system**.
