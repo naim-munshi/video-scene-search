@@ -14,6 +14,13 @@ def evaluate(engine, labels_path, output, split="test", k=5):
     validate_labels(labels, engine.windows)
     if labels.get("build_sha256") != sha256(engine.root / "build.json"):
         raise ValueError("Labels belong to a different build; recheck annotations")
+    provenance = labels.get("label_provenance") or labels.get("annotation_method") or "not_recorded"
+    weak_labels = (
+        labels.get("human_verified") is False
+        or labels.get("independent_ground_truth") is False
+        or labels.get("evaluation_scope") == "weak_label_sanity_check_only_not_real_world_accuracy"
+        or str(provenance).startswith("assistant_assisted")
+    )
     queries = [q for q in labels["queries"] if q["split"] == split]
     if not queries:
         raise ValueError(f"No queries in split {split}")
@@ -52,7 +59,10 @@ def evaluate(engine, labels_path, output, split="test", k=5):
     write_json(output / "per_query.json", details)
     write_json(output / "evidence.json", {"created_at": datetime.now(timezone.utc).isoformat(),
         "build_sha256": sha256(engine.root / "build.json"), "labels_sha256": sha256(labels_path),
-        "label_provenance": labels.get("label_provenance", "not_recorded"),
+        "label_provenance": provenance,
+        "human_verified": labels.get("human_verified"),
+        "independent_ground_truth": labels.get("independent_ground_truth"),
+        "evaluation_scope": "weak_label_sanity_check_only" if weak_labels else "provided_annotations",
         "split": split, "k": k, "query_count": len(queries), "python": platform.python_version(),
         "platform": platform.platform(), "matching": ("Exact deterministic synthetic fixed-window IDs"
                      if labels.get("label_provenance") == "synthetic_deterministic_not_manual"
@@ -66,7 +76,10 @@ def evaluate(engine, labels_path, output, split="test", k=5):
         writer.writeheader()
         writer.writerows(totals)
     lines = ["# Retrieval evaluation", "", f"Split: {split}; queries: {len(queries)}; k: {k}.", "",
-             f"Label provenance: {labels.get('label_provenance', 'not recorded')}.", ""]
+             f"Label provenance: {provenance}.", ""]
+    if weak_labels:
+        lines += ["**AI-ASSISTED WEAK LABELS ONLY. Exploratory sanity check; "
+                  "not independently human-verified real-world retrieval accuracy.**", ""]
     if labels.get("label_provenance") == "synthetic_deterministic_not_manual":
         lines += ["**SYNTHETIC BENCHMARK ONLY. Not a real-world quality claim.**", ""]
     lines += [
