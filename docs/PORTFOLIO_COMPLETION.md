@@ -28,8 +28,9 @@ six AI-assisted development queries, on 27 October 2026:
 | Transcript | 0.5167 | 0.6667 | 0.5417 |
 | Hybrid | 0.6333 | 0.8333 | 0.8333 |
 
-- Scores are from BEFORE the revised visual-intent keyword router added after
-  this Mac run; no improved values are claimed until rerun.
+- The earlier dev measurements preceded the revised visual-intent router.
+  The owner's subsequent Mac release produced identical dev aggregates;
+  therefore no measurable aggregate improvement is claimed.
 - Original dev failures: q03 intro/name-caption visual target was missed by
   all three modes. q02 had 10 relevant windows, so exact Recall@5 cannot exceed
   5/10 = 0.50. Hybrid achieved stronger aggregate MRR, yet visual-kind query
@@ -42,7 +43,7 @@ six AI-assisted development queries, on 27 October 2026:
   annotator provenance but was created using contact sheets and ASR. It is
   NOT independent human ground truth. Do not claim verified real-world accuracy.
 
-## Phase 3: Reproducible release runner — IMPLEMENTED, MAC RUN REQUIRED
+## Phase 3: Reproducible release runner — MAC ENGINEERING PASS
 
 One command runs local index integrity checks, validates 6/18 query splits,
 captures SHA-256 fingerprints for code/index/labels, evaluates dev and
@@ -70,9 +71,16 @@ The output includes:
 - input-manifest.json with source/index fingerprint and audit evidence.
 - shareable-release-evidence.zip containing JSON/CSV/Markdown only.
 
-The weak-label test split is not scientific held-out ground-truth evaluation.
-It may be run as an EXPLORATORY engineering check, never presented as a
-human-labeled blind benchmark.
+The Mac run succeeded on 27 October 2026. Release status was
+`LOCAL_ENGINEERING_CHECKS_PASS` after index verification and both 6-query
+development and 18-query provisional test execution. Weak-label test scores:
+visual Recall@5/MRR@5 0.3925/0.4676, transcript 0.4159/0.4167,
+hybrid 0.5224/0.5759. Test hybrid Hit@5 0.7222 (13 of 18 queries).
+Metric arithmetic and archive content were checked independently using the
+uploaded per-query evidence; see docs/LOCAL_RELEASE_RESULTS_2026-10-27.md.
+These test scores are AI-assisted WEAK-LABEL results, not scientifically
+independent ground-truth performance. The test split has now been inspected
+and is no longer untouched for any future tuning.
 
 ## Phase 4: Portfolio UX, documentation, and final evidence — IMPLEMENTED
 ## with non-code sign-offs remaining
@@ -93,15 +101,16 @@ human-labeled blind benchmark.
 2. On the Mac, verify search result and playback at matching timestamps for
    Interview, Tears of Steel and NASA; check console errors and missing media.
 3. Record an attributed 60–90 second portfolio screen demonstration.
-4. Run the one-command release script and keep its report archive.
+4. Release script already ran successfully; preserve the existing report
+   archive in reports/portfolio-release-20261027-132941.
 5. Public cloud multi-tenant deployment would require user auth, private
    media isolation, quotas, retention and abuse controls; NOT provided by
    this local prototype.
 
 ## Release interpretation
 
-LOCAL ENGINEERING PASS requires a successful three-video index audit,
-query execution and both provisional report generations.
+LOCAL ENGINEERING PASS confirmed by the supplied Mac release evidence:
+three-video index audit, query execution and both provisional reports.
 HUMAN-VERIFIED BENCHMARK remains NOT VERIFIED until independent label review.
 BROWSER ACCEPTANCE remains NOT VERIFIED until three-video Safari check.
 PRODUCTION-GRADE HOSTING remains OUT OF SCOPE.
