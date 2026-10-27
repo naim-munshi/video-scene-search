@@ -1,3 +1,45 @@
+# Validation record — updated 27 October 2026
+
+## Real-video evidence from the owner's Mac (27 October 2026)
+
+- Three source-attributed videos were processed into portfolio-real-v2:
+  252 fixed ten-second windows, 453 speech segments and approximately
+  41:48 combined playback duration.
+- Mac/Safari screenshot verified NASA scene search and playback.
+  This is not a full three-video Safari/browser sign-off.
+- The user's Mac successfully completed an **offline**, six-query,
+  development-only exploratory evaluation using real CLIP and MiniLM
+  model workers with MPS. This used AI-assisted weak relevance labels:
+
+| Mode | Recall@5 | Hit@5 | MRR@5 |
+| --- | ---: | ---: | ---: |
+| Visual | 0.3722 | 0.6667 | 0.6667 |
+| Transcript | 0.5167 | 0.6667 | 0.5417 |
+| Hybrid | 0.6333 | 0.8333 | 0.8333 |
+
+**Warning:** This is not independently verified real-world accuracy.
+The development numbers precede the new visual-intent keyword update.
+No improvement can be asserted until a new local Mac evaluation is run.
+No updated 18-query test measurement was provided as of this revision.
+q02's ten labeled candidate windows imply maximum Recall@5 = 0.5.
+q03 missed its labeled interview opening in all three modes.
+
+## Current repository release readiness
+
+- A release runner under scripts/finish_portfolio.py checks local index
+  metadata, 24-query label shape (6 dev + 18 test), SHA-256 build/index
+  fingerprints, executes both splits with local cached models, creates
+  Markdown/CSV/JSON reports and a shareable evidence ZIP without video files.
+- Online TLS certificate verification is not disabled; the default is
+  offline cached Hugging Face models.
+- The release script is validated by dependency-light GitHub CI unit tests.
+  GitHub CI does not run Apple MPS or original source videos and cannot
+  verify the user's Mac runtime, actual relevance, or Safari interactions.
+- Query annotation UI shows an explicit weak-label disclaimer.
+- See docs/PORTFOLIO_COMPLETION.md for phase status and the exact command.
+
+---
+
 # Validation record — October 26, 2026
 
 ## Latest GitHub Actions
