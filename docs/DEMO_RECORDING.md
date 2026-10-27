@@ -4,6 +4,26 @@
 The app and original media are on the owner's Mac. No video content is
 available to the GitHub CI runner or the chat's GitHub connector.
 
+## Reuse genuine screenshots (not synthetic mockups)
+
+The owner's 27 October 2026 Streamlit captures contain three usable portfolio
+screens: **overview dashboard**, **three-video library**, and **NASA Apollo 15
+hybrid search with real timestamp playback**. Prefer these factual screenshots
+over AI-generated images or unreviewed contact sheets. A separate ready-to-copy
+`video_scene_search_demo_gallery.zip` bundle has been prepared from the
+owner-provided screenshots. It contains:
+- `docs/assets/demo/01-overview.jpg` (3 videos, 252 windows, query modes)
+- `docs/assets/demo/02-video-library.jpg` (source-attributed collection cards)
+- `docs/assets/demo/03-timestamp-search.jpg` (NASA 01:50 matching moment)
+- `docs/DEMO_GALLERY.md` (captions, source credits, weak-label caveat)
+
+These **binary images are not currently committed to the GitHub repository**
+until the owner imports and pushes the prepared bundle. Do not create broken
+image links in README before that upload. Do not claim a screenshot is an
+independently verified accuracy result, and do not publish full raw contact
+sheets or original third-party movies. The gallery file credits
+ConversationEDU, Blender Foundation and NASA / Apollo 15 Learning Hub.
+
 ## Record locally
 
 1. From `~/video-scene-search`, activate `.venv` and run
