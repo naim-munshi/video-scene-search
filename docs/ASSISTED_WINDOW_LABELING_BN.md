@@ -13,7 +13,7 @@ and it never manufactures "human-verified" ground truth.
 \`\`\`bash
 cd ~/video-scene-search
 source .venv/bin/activate
-git pull --ff-only origin MdNaim
+git pull --ff-only origin main
 python scripts/export_annotation_evidence.py
 open -R reports/portfolio-real-v2-evidence.zip
 \`\`\`
