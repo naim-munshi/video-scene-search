@@ -96,7 +96,7 @@ existing index and does not require FFmpeg's optional flite filter.
 ```bash
 cd ~/video-scene-search
 source .venv/bin/activate
-git pull --ff-only origin MdNaim
+git pull --ff-only origin main
 python -m pip install -e .
 python -m compileall -q src app.py scripts tests
 python -m unittest discover -s tests -v
