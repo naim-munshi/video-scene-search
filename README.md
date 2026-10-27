@@ -21,7 +21,7 @@
 
 ### Real-video engineering evidence
 
-Three source-attributed videos (Steve Wozniak interview, *Tears of Steel* and NASA Apollo 15) were processed on the owner's Mac: **41:48 total**, **252 windows**, **1,256 sampled frames** and **453 speech segments**. Integrity and local H.264/AAC video/audio spot decoding passed. Data and media are **not included** in this repository.
+Three source-attributed videos (Steve Wozniak interview, *Tears of Steel* and NASA Apollo 15) were processed on the owner's Mac: **41:48 total**, **252 windows**, **1,256 sampled frames** and **453 speech segments**. Integrity and local H.264/AAC video/audio spot decoding **passed on 27 October 2026** for all three clips; the result is recorded in `reports/media-preflight-20261027-145120.json` on the Mac. Data and media are **not included** in this repository.
 
 The six development and eighteen provisional test queries use **AI-assisted candidate relevance labels**, created from contact sheets and ASR. The following numbers are **exploratory weak-label retrieval measurements, not independent accuracy estimates**:
 
@@ -69,7 +69,7 @@ python scripts/media_playback_preflight.py --index artifacts/portfolio-real-v2
 SCENE_INDEX=artifacts/portfolio-real-v2 python -m streamlit run app.py --server.address 127.0.0.1
 ```
 
-Open the **URL printed by Streamlit** (for example `http://127.0.0.1:8502` if 8501 is already occupied). The **Video library** offers three playback checkpoints per source; the optional nine-checkpoint checklist is a user self-attestation, **not** an automated Safari/browser PASS.
+Open the **URL printed by Streamlit** (for example `http://127.0.0.1:8502` if 8501 is already occupied). The **Video library** offers three playback checkpoints per source; the optional nine-checkpoint checklist now **retains confirmations across selections within the browser session**. It is a user self-attestation, **not** an automated Safari/browser PASS. Refreshing or closing the session may discard unchecked or unsaved observations.
 
 ## Setup from scratch (no bundled media)
 
