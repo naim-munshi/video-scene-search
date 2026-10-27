@@ -111,3 +111,35 @@ def browser_checklist_status(build_sha256, checks, video_ids):
             for vid in ids for step in checkpoints),
         "required_checkpoints": 3 * len(ids),
     }
+
+
+PLAYBACK_STEPS = ("Beginning", "Middle", "Near end")
+
+
+def playback_confirmation_key(build_sha256, video_id, checkpoint):
+    """Namespace human attestations by exact build and original video ID."""
+    if not isinstance(build_sha256, str) or len(build_sha256) != 64:
+        raise ValueError("Expected full index build SHA-256")
+    if not isinstance(video_id, str) or not video_id.strip():
+        raise ValueError("Missing source video ID")
+    if checkpoint not in PLAYBACK_STEPS:
+        raise ValueError("Unknown playback checkpoint")
+    return f"playback::{build_sha256}::{video_id}::{checkpoint}"
+
+
+def collect_playback_confirmations(confirmations, build_sha256, video_ids):
+    """Read confirmations from a durable dict, not Streamlit widget state.
+
+    Streamlit destroys state belonging to conditional widgets when they're
+    hidden by a video/timestamp switch. This backing dict survives reruns
+    within the same browser session, but is deliberately not persisted
+    to disk.
+    """
+    return {
+        video_id: {
+            name: confirmations.get(
+                playback_confirmation_key(build_sha256, video_id, name)
+            ) is True for name in PLAYBACK_STEPS
+        }
+        for video_id in video_ids
+    }
