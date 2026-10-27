@@ -85,8 +85,7 @@ class MediaPreflightTests(unittest.TestCase):
         def no_frame(command, **kwargs):
             result = self.fake_runner(command, **kwargs)
             if command[0] == "ffmpeg":
-                result.stdout = "#hash: SHA256\\n#header only\\n".replace(
-                    "\\\\n", "\\n")
+                result.stdout = "#hash: SHA256\\n#header only\\n"
             return result
         with self.assertRaisesRegex(RuntimeError, "No decodable video"):
             check_source(self.video(), runner=no_frame)
