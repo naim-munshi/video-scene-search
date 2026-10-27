@@ -15,7 +15,7 @@
 ```bash
 cd ~/video-scene-search
 source .venv/bin/activate
-git pull --ff-only origin MdNaim
+git pull --ff-only origin main
 python scripts/media_playback_preflight.py --index artifacts/portfolio-real-v2
 SCENE_INDEX=artifacts/portfolio-real-v2 python -m streamlit run app.py --server.address 127.0.0.1
 ```
@@ -155,7 +155,7 @@ existing synthetic fixture without regenerating it:
 
 ```bash
 cd ~/video-scene-search
-git pull --ff-only origin MdNaim
+git pull --ff-only origin main
 source .venv/bin/activate
 python -m pip install -e .
 python -m unittest discover -s tests -v
