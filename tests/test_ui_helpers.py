@@ -3,7 +3,8 @@ import tempfile
 import unittest
 from pathlib import Path
 from scene_search.ui_helpers import (discover_indexes, format_index,
-                                     is_synthetic, readable_time, preview_frames)
+                                     is_synthetic, readable_time, preview_frames,
+                                     playback_checkpoints, browser_checklist_status)
 
 
 class UIHelperTests(unittest.TestCase):
@@ -65,6 +66,25 @@ class UIHelperTests(unittest.TestCase):
             frames.append({"video_id": "missing", "timestamp": 3,
                            "file": "../../outside.jpg"})
             self.assertIsNone(preview_frames(videos, frames, root)["missing"])
+
+    def test_playback_checkpoints_and_manual_browser_attestation(self):
+        self.assertEqual(playback_checkpoints(900),
+                         [("Beginning", 5), ("Middle", 450), ("Near end", 885)])
+        with self.assertRaises(ValueError):
+            playback_checkpoints(0)
+        ids = ["portfolio_nasa", "portfolio_interview", "portfolio_film"]
+        checks = {v: {name: True for name in
+                  ("Beginning", "Middle", "Near end")} for v in ids}
+        status = browser_checklist_status("validhash", checks, ids)
+        self.assertEqual(status["status"], "USER_SELF_ATTESTED")
+        self.assertTrue(status["not_automated_safari_test"])
+        self.assertFalse(status["independent_ground_truth_verified"])
+        checks["portfolio_film"]["Near end"] = False
+        status = browser_checklist_status("validhash", checks, ids)
+        self.assertEqual(status["status"], "NOT_VERIFIED")
+        self.assertEqual(status["confirmed_checkpoints"], 8)
+        self.assertEqual(browser_checklist_status("digest", {}, ids)["status"],
+                         "NOT_VERIFIED")
 
     def test_index_labels(self):
         self.assertIn("DEMO", format_index("/tmp/demo-v1"))
