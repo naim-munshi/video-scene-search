@@ -45,7 +45,8 @@ def evaluate(engine, labels_path, output, split="test", k=5):
             values = metrics(predicted, relevant, k)
             details.append({"query_id": q["id"], "query": q["text"], "kind": q["kind"],
                 "split": split, "mode": mode, **values, "predicted": predicted,
-                "relevant": sorted(relevant), "missed": sorted(relevant - set(predicted)),
+                "relevant": sorted(relevant), "max_possible_recall_at_k": min(k, len(relevant)) / len(relevant),
+                "missed": sorted(relevant - set(predicted)),
                 "false_positives": [p for p in predicted if p not in relevant],
                 "amortized_all_modes_seconds_including_batch_model_load": elapsed})
     for mode in MODES:
@@ -88,6 +89,17 @@ def evaluate(engine, labels_path, output, split="test", k=5):
     for t in totals:
         lines.append(f"| {t['mode']} | {t['kind']} | {t['queries']} | {t[f'recall@{k}']:.4f} | "
                      f"{t[f'hit@{k}']:.4f} | {t[f'mrr@{k}']:.4f} |")
+    oversized = [q for q in queries if len(q["relevant"]) > k]
+    if oversized:
+        lines += ["", "## Recall ceiling at k", "",
+                  "With exact-window Recall@5, a query with more than five labeled "
+                  "windows cannot reach 100% regardless of model quality. "
+                  "Hit@5 and MRR@5 are also reported above.", ""]
+        for q in oversized:
+            ceiling = min(k, len(q["relevant"])) / len(q["relevant"])
+            lines.append(
+                f"- {q['id']}: {len(q['relevant'])} labeled windows; "
+                f"maximum Recall@{k} = {ceiling:.4f}.")
     lines += ["", "## Failure review", "",
               "These are retrieval mismatches, not automatically diagnosed causes. Review the video.", ""]
     for d in details:
