@@ -11,7 +11,7 @@ from the AI's own search ranking, especially on the held-out test split.
 \`\`\`bash
 cd ~/video-scene-search
 source .venv/bin/activate
-git pull --ff-only origin MdNaim
+git pull --ff-only origin main
 
 python scripts/seed_portfolio_queries.py
 open -R evaluation/portfolio-real-v2-query-draft.json
