@@ -14,6 +14,7 @@ from scene_search.search import SearchEngine
 from scene_search.ui_helpers import (
     discover_indexes, format_index, is_synthetic, readable_time, preview_frames,
     playback_checkpoints, browser_checklist_status,
+    playback_confirmation_key, collect_playback_confirmations,
 )
 
 APP_ROOT = Path(__file__).resolve().parent
@@ -323,11 +324,22 @@ with library_tab:
                 ), key=f"playback_checkpoint_{root.name}_{library_id}")
             step, offset = checkpoints[checkpoint]
             st.video(str(media_path), start_time=offset)
-            digest_short = sha256(root / "build.json")[:12]
-            st.checkbox(
+            # Streamlit drops hidden widget keys when switching sources.
+            # Persist user confirmations separately, scoped to the exact
+            # SHA-256 build so other collections cannot reuse them.
+            digest = sha256(root / "build.json")
+            confirmations = st.session_state.setdefault(
+                "_manual_playback_confirmations", {})
+            confirmation = playback_confirmation_key(digest, library_id, step)
+            checked = st.checkbox(
                 "I played this timestamp and confirmed BOTH picture and sound",
-                key=f"playback_confirm_{digest_short}_{library_id}_{step}")
-            st.caption("Self-reported local Safari check, not automated browser testing.")
+                value=confirmations.get(confirmation) is True,
+                key=f"_playback_widget_{digest[:12]}_{library_id}_{step}")
+            if checked:
+                confirmations[confirmation] = True
+            else:
+                confirmations.pop(confirmation, None)
+            st.caption("Self-reported local browser observation, not automated Safari testing.")
         else:
             st.warning("Original video is missing from its saved path.")
     with info:
@@ -348,22 +360,24 @@ with library_tab:
         "A checked box is your own observation, not automatic proof of Safari playback."
     )
     evidence_digest = sha256(root / "build.json")
-    observations = {
-        video_id: {
-            name: bool(st.session_state.get(
-                f"playback_confirm_{evidence_digest[:12]}_{video_id}_{name}", False))
-            for name in ("Beginning", "Middle", "Near end")
-        }
-        for video_id in engine.videos
-    }
+    observations = collect_playback_confirmations(
+        st.session_state.setdefault("_manual_playback_confirmations", {}),
+        evidence_digest, engine.videos.keys())
     playback_status = browser_checklist_status(
         evidence_digest, observations, engine.videos.keys())
     st.caption(
         f"Checked: {playback_status['confirmed_checkpoints']}"
         f"/{playback_status['required_checkpoints']} timestamps"
     )
-    if playback_status["status"] == "USER_SELF_ATTESTED":
-        playback_status["recorded_at_utc"] = datetime.now(timezone.utc).isoformat()
+    all_sources_present = all(
+        Path(video["path"]).is_file() for video in engine.videos.values())
+    complete_at_key = f"_playback_completed_at_{evidence_digest}"
+    if (playback_status["status"] == "USER_SELF_ATTESTED"
+            and all_sources_present):
+        if complete_at_key not in st.session_state:
+            st.session_state[complete_at_key] = (
+                datetime.now(timezone.utc).isoformat())
+        playback_status["recorded_at_utc"] = st.session_state[complete_at_key]
         st.download_button(
             "Download my manual playback sign-off JSON",
             json.dumps(playback_status, ensure_ascii=False, indent=2),
@@ -371,7 +385,11 @@ with library_tab:
             mime="application/json",
         )
     else:
-        st.info("Playback acceptance is not yet verified. All 9 manual checks are required.")
+        st.session_state.pop(complete_at_key, None)
+        if not all_sources_present:
+            st.error("A source MP4 is missing; playback sign-off is blocked.")
+        else:
+            st.info("Playback acceptance is not yet verified. All 9 manual checks are required.")
     with st.expander("Browse indexed timestamps"):
         st.dataframe(
             [{"Window": w["id"], "From": readable_time(w["start"]),
