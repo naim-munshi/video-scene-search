@@ -1,452 +1,112 @@
 # Video Scene Search
 
-A local Python proof of concept that retrieves timestamped video windows using
-visual similarity, transcript similarity, and reciprocal rank fusion (RRF).
-Built as an AI engineering portfolio project for media retrieval and analysis
-of false positives and missed relevant scenes. It is not affiliated with ABEMA.
+[![CI](https://github.com/naim-munshi/video-scene-search/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/naim-munshi/video-scene-search/actions/workflows/tests.yml?query=branch%3Amain)
+![Python](https://img.shields.io/badge/Python-3.10%E2%80%933.13-3776AB)
+![Scope](https://img.shields.io/badge/scope-local%20portfolio%20PoC-486B60)
 
-## Status — three-video portfolio prototype
+**Find the right moment in a video using natural-language queries.** A local multimodal search prototype that aligns sampled image frames and transcribed speech with timestamped playback. Built for an AI engineering portfolio; not affiliated with ABEMA or any commercial video service.
 
-The local three-video pipeline, Streamlit search/playback, FAISS indexes,
-Mac MPS model workers and 24-query **exploratory** evaluation are implemented.
-The repository is a local research PoC, **not a public multi-user SaaS**.
+**Status:** `v0.1` local engineering release **PASS** (27 October 2026). Browser self-attestation, independent label verification and public hosting are **not** part of that PASS.
 
-**Real video collection:** 3 licensed-source videos (NASA Apollo 15, Steve
-Wozniak interview and *Tears of Steel*), 41:48 combined, 252 indexed
-10-second windows and 453 transcription segments. Source media/indexes
-remain on the user's Mac and are intentionally excluded from Git.
+## At a glance
 
-### Measured 27 Oct 2026: original 6-query development weak-label baseline
+| Capability | Implementation |
+| --- | --- |
+| Scene search | CLIP ViT-B/32 visual similarity over sampled frames |
+| Speech search | faster-whisper ASR + multilingual MiniLM text embeddings |
+| Hybrid ranking | Query-intent weighted reciprocal rank fusion (RRF) |
+| Index | FAISS, fixed 10-second windows, SHA-256 build manifest |
+| Interface | Streamlit search, evidence thumbnails/transcripts, timestamp playback, local video import |
+| Deployment boundary | Single-user Mac/Linux prototype; local media excluded from Git |
 
-The user's Mac executed both CLIP and MiniLM workers on MPS successfully
-with offline cached models. These values were captured **before** the newer
-visual-intent keyword update, so they are historical baseline numbers, not
-an assertion of improvement from that change.
+### Real-video engineering evidence
 
-| Method | Recall@5 | Hit@5 | MRR@5 |
-| --- | ---: | ---: | ---: |
-| Visual-only | 0.3722 | 0.6667 | 0.6667 |
-| Transcript-only | 0.5167 | 0.6667 | 0.5417 |
-| Hybrid | 0.6333 | 0.8333 | 0.8333 |
+Three source-attributed videos (Steve Wozniak interview, *Tears of Steel* and NASA Apollo 15) were processed on the owner's Mac: **41:48 total**, **252 windows**, **1,256 sampled frames** and **453 speech segments**. Integrity and local H.264/AAC video/audio spot decoding passed. Data and media are **not included** in this repository.
 
-**Critical benchmark caveat:** relevance IDs were suggested by an AI using
-contact sheets and ASR, **not** independently human-verified. These are
-weak-label sanity checks, **not independently measured real-world quality**,
-and must not be represented as such on a CV. The q02 weak labels include ten
-relevant windows, limiting its maximum Recall@5 to 0.5. The initial q03
-intro/captions query was missed by all three retrieval methods. A change to
-visual-intent routing is present on branch MdNaim; it must be remeasured
-before claiming improvement. The 18-query test split was subsequently executed on the same
-AI-assisted weak-label dataset. Results below describe only a provisional
-engineering check, not a blind independently annotated benchmark.
+The six development and eighteen provisional test queries use **AI-assisted candidate relevance labels**, created from contact sheets and ASR. The following numbers are **exploratory weak-label retrieval measurements, not independent accuracy estimates**:
 
-### Measured 27 Oct 2026: provisional full 24-query release check
-
-The Mac's local release runner completed both dev and test retrieval.
-Index audit returned `metadata_integrity_passed` for 3 videos, 252 windows,
-1,256 indexed frames and 453 speech segments, with no missing-file warnings.
-
-| Search mode | Dev Recall@5 | Dev MRR@5 | Test Recall@5 | Test MRR@5 |
+| Search method | Dev Recall@5 | Dev MRR@5 | Provisional test Recall@5 | Provisional test MRR@5 |
 | --- | ---: | ---: | ---: | ---: |
 | Visual | 0.3722 | 0.6667 | 0.3925 | 0.4676 |
 | Transcript | 0.5167 | 0.5417 | 0.4159 | 0.4167 |
-| Hybrid | 0.6333 | 0.8333 | 0.5224 | 0.5759 |
+| **Hybrid** | **0.6333** | **0.8333** | **0.5224** | **0.5759** |
 
-Test Hit@5: visual 0.6667, transcript 0.5000, hybrid **0.7222**
-(13/18 queries). The test set has 7 visual, 5 speech and 6 mixed queries.
-Hybrid had no labeled hit for q09, q10, q14, q21 and q24.
-On q09 transcript-only retrieved both candidate windows within the top 5,
-but hybrid retrieved neither. The updated query-intent heuristic has therefore
-**not demonstrated a general ranking improvement**. A further change would
-require development-only investigation and a fresh, untouched test set.
+Hybrid provisional test Hit@5 was **0.7222 (13/18 queries)**. Failed or ambiguous results are documented in [the release analysis](docs/LOCAL_RELEASE_RESULTS_2026-10-27.md), including cases where modality fusion hurt ranking. Do not cite these values as independently verified model accuracy.
 
-**Every metric above is AI-assisted and weak-labeled.** Relevance IDs came
-from sampled contact sheets and ASR, not independent human ground truth.
-This is exploratory engineering evidence, NOT validated real-world accuracy
-or an unbiased blind test estimate. The release output was independently
-checked for arithmetic and report consistency; see
-[27 October release findings](docs/LOCAL_RELEASE_RESULTS_2026-10-27.md).
+## Architecture
 
-The local release status is `LOCAL_ENGINEERING_CHECKS_PASS`.
-Safari playback, independent relevance-label completeness and public
-production security remain unverified or out of scope.
-
-### Complete the reproducible local engineering release
-
-With the already-created original index and weak labels present on the Mac:
-
-```bash
-cd ~/video-scene-search
-source .venv/bin/activate
-git pull --ff-only origin MdNaim
-python scripts/finish_portfolio.py --preflight-only
-python scripts/finish_portfolio.py --device mps
+```mermaid
+flowchart LR
+    A[Permission-cleared MP4] --> B[Frame sampling + Whisper ASR]
+    B --> C[CLIP visual embeddings]
+    B --> D[MiniLM transcript embeddings]
+    C --> E[FAISS indexes]
+    D --> E
+    F[Natural-language query] --> G[Isolated text embedding workers]
+    G --> E
+    E --> H[Visual + transcript rankings]
+    H --> I[Intent-weighted RRF]
+    I --> J[10-second results + timestamp playback]
 ```
 
-The release script first audits index and labels, then uses the existing
-Hugging Face model cache offline and creates a **NEW** unique directory
-under reports/ with dev/test summaries, per-query evidence, build/source
-hashes and a shareable evidence ZIP (no original videos). If a model is
-missing, it records INCOMPLETE rather than claiming success.
-It does not modify the original index, labels, videos or earlier reports.
-The test split is a **provisional weak-label engineering check**, not a
-human ground-truth benchmark. For full details see
-[portfolio completion](docs/PORTFOLIO_COMPLETION.md).
+See [full architecture and security boundaries](docs/ARCHITECTURE.md).
 
-**Still needs external acceptance:** independent verification of evaluation
-labels for scientific accuracy, three-video Safari playback sign-off,
-attributed 60–90s recording for the portfolio. Security hardening for
-public hosting is outside this local release's scope.
+## Run on the existing Mac collection
 
-### Final local playback and portfolio closeout
-
-The Mac engineering release already passed. To verify actual video/audio
-decoding without rebuilding the index or re-running the 24-query benchmark:
+Requires the owner's **already-built** `artifacts/portfolio-real-v2` and Python virtual environment. Do not redownload or re-index existing media.
 
 ```bash
 cd ~/video-scene-search
 source .venv/bin/activate
-git pull --ff-only origin MdNaim
+git fetch origin main
+git switch main
+git pull --ff-only origin main
+
+# Optional: verify existing source media decoding without changing it
 python scripts/media_playback_preflight.py --index artifacts/portfolio-real-v2
+
+# Launch the local-only UI
 SCENE_INDEX=artifacts/portfolio-real-v2 python -m streamlit run app.py --server.address 127.0.0.1
 ```
 
-The preflight checks H.264/AAC and decodes start/middle/end frames plus audio
-for all three locally stored MP4s. It **does not prove Safari playback**.
-In Streamlit's **Video library** choose each source and its Beginning,
-Middle and Near end playback checkpoints, confirm picture/sound, and
-download the optional self-attestation file after all nine checks.
-An uncompleted checklist always reports NOT_VERIFIED.
+Open the **URL printed by Streamlit** (for example `http://127.0.0.1:8502` if 8501 is already occupied). The **Video library** offers three playback checkpoints per source; the optional nine-checkpoint checklist is a user self-attestation, **not** an automated Safari/browser PASS.
 
-The local software/engineering phase is closed. Human-reviewed ground
-truth, independently valid accuracy claims and a redistributed/attributed
-screen recording are separate external sign-offs.
+## Setup from scratch (no bundled media)
 
-[Architecture](docs/ARCHITECTURE.md) ·
-[Local release audit](docs/LOCAL_RELEASE_RESULTS_2026-10-27.md) ·
-[Demo recording guide](docs/DEMO_RECORDING.md) ·
-[Formal project closure](docs/PROJECT_CLOSURE.md).
-
-## Start with a synthetic demo (no private videos needed)
-
-The repository also includes a **three-video, spoken-audio synthetic demo**
-with deterministic labels and a reproducible evaluation workflow. This is an
-engineering smoke/illustration only, not a real-scene quality result. Once the
-project is installed, run:
+Python 3.10–3.13, FFmpeg/FFprobe and adequate local storage are required. Python 3.12 is the known Mac configuration.
 
 ```bash
-python scripts/synthetic_demo.py generate
-scene-search ingest --manifest data/demo-corpus.json --output artifacts/demo-index --whisper-model tiny --language en
-python scripts/synthetic_demo.py labels --index artifacts/demo-index
-scene-search evaluate --index artifacts/demo-index --labels evaluation/demo-labels.json --split test --output reports/demo-test
-SCENE_INDEX=artifacts/demo-index python -m streamlit run app.py --server.address 127.0.0.1
-```
-
-The generator needs FFmpeg. It uses FFmpeg's `flite` filter when available; on macOS, it otherwise falls back to the built-in `say` command for speech. See
-[Demo & acceptance](docs/DEMO_AND_ACCEPTANCE.md) for setup, preflight checks
-for 2–3 real talking videos, controlled test labels, evaluation, and screen
-recording criteria. Measured numbers on the owner's real three-video corpus use AI-assisted weak
-labels; independently human-verified Recall@5/MRR remains unmeasured.
-
-## Setup on Mac or Linux
-
-Use Python 3.12 (3.10–3.13 supported by this project's declared range).
-If your default Python is 3.14, install 3.12 separately; do not change your other projects.
-From the extracted `video-scene-search` folder:
-
-```bash
+git clone https://github.com/naim-munshi/video-scene-search.git
+cd video-scene-search
 python3.12 -m venv .venv
 source .venv/bin/activate
-python -m pip install --upgrade pip
 python -m pip install -e .
 python -m unittest discover -s tests -v
 ```
 
-The first ingest/search downloads pretrained weights from Hugging Face.
-Dependencies and weights can consume several GB; initial CPU processing can be slow.
-Dependencies have compatibility ranges, not a universal platform lockfile.
-PyAV is constrained below 16: the real-model smoke test exposed an audio-decoding
-API incompatibility between faster-whisper 1.2.1 and PyAV 19.0.2.
-Each index records the actual package versions; save `python -m pip freeze` with
-your completed experiment. Model repository revisions are not pinned in v0.1;
-archive the model cache for strict future reproduction.
+To add your own video, record its provenance and permission in a manifest, then run `scene-search ingest --manifest examples/corpus.json --output artifacts/index`. **The example manifest must be edited and rights confirmed before use.** See the [developer guide](docs/DEVELOPER_GUIDE.md) for full ingestion steps, synthetic demo, MPS troubleshooting and reproducible evaluation.
 
+## Engineering quality and limitations
 
-### Apple Silicon: CLIP native crash isolation
+- **Evidence:** GitHub Actions checks Python compilation and dependency-light unit tests. Native FFmpeg/MPS and actual video playback are checked separately on the Mac.
+- **Privacy:** original MP4s, frames, transcripts, FAISS indexes, evaluation labels and reports are git-ignored. Do not force-add private assets or third-party clips.
+- **Accuracy:** CLIP may confuse similar scenes; ASR may miss dialogue; rank fusion can demote a valid match. Ten-second windowing and weak labels constrain Recall@5.
+- **Safety:** local loopback only (`127.0.0.1`), XSRF protection enabled. **No authentication, multi-tenant access control or production hosting guarantee.**
+- **Reproduction:** the index records model/package metadata and hashes, but model revisions are not fully pinned. Keep local caches and manifests for exact replay.
 
-If the ingest process previously ended with a segmentation fault inside
-`torch.nn.Conv2d` / `CLIPModel`, pull the latest commit. On macOS the
-visual image encoder now runs in a separate Python process, with
-`OMP_NUM_THREADS=1` and a small batch size (2), to separate PyTorch
-convolution from native audio/video libraries. This is a mitigation,
-**not evidence that the Mac crash is fixed**.
+## Repository guide
 
-First verify GPU availability:
-
-```bash
-python -c "import torch; print('MPS available:', torch.backends.mps.is_available())"
-```
-
-When MPS is available, try:
-
-```bash
-python -X faulthandler -m scene_search.cli ingest --manifest data/demo-corpus.json --output artifacts/demo-index-mps --whisper-model tiny --language en --device mps
-```
-
-If MPS is unavailable, use `--device cpu` with the same command and a fresh
-output directory. A native failure from the visual subprocess now reports a
-non-zero exit rather than claiming a completed index. Do not try searching
-until an index contains `build.json`. For explicit diagnosis, flags
-`--embedding-mode in-process` and `--visual-batch-size 1` are available.
-
-## 1. Add videos
-
-Start with one self-recorded video, then expand to 2–3 videos of 10–20 minutes.
-Prefer constant-frame-rate MP4/H.264 with AAC audio for browser playback.
-Place videos in `data/videos/`, then edit `examples/corpus.json`:
-
-- Set `path` relative to the manifest file, not your terminal directory.
-- Use unique IDs such as `video_01`, `video_02`.
-- Record source, license and attribution; set `rights_confirmed` to true only
-  after checking ownership/permission and participant consent where applicable.
-- For Creative Commons content, record the exact source URL, license/version,
-  creator and attribution. Do not assume a publicly accessible video is reusable.
-
-No third-party video is bundled. Private media, transcripts, frames and indexes
-remain local and are excluded from git. Do not publish them without permission.
-
-## 2. Build
-
-```bash
-scene-search ingest --manifest examples/corpus.json --output artifacts/index
-```
-
-This runs faster-whisper `base` on CPU/int8, extracts frames every 2 seconds,
-encodes frames with CLIP ViT-B/32 and transcript segments with multilingual
-MiniLM, and writes two normalized inner-product FAISS indexes. Ten-second
-windows form the shared result and ground-truth unit.
-
-On Apple Silicon, `--device mps` optionally accelerates embeddings. Whisper
-continues on CPU because CTranslate2 does not use MPS. CPU is the default.
-Use `--language ja` or `--language en` if automatic language detection is wrong.
-Use a larger `--whisper-model small` only after measuring transcription quality.
-
-Output directories cannot be overwritten. Rebuild into `artifacts/index-v2`
-when changing the corpus/configuration; annotations are tied to the build hash.
-Atomic publication prevents an interrupted build from appearing complete.
-
-## Apple Silicon: query-time native crash protection
-
-Query encoding is isolated on macOS, just like visual frame encoding.
-The CLIP text encoder and multilingual transcript model no longer run
-inside the Streamlit/FAISS parent process by default. By default, the
-query worker selects MPS when supported and otherwise CPU; for the
-known MPS-enabled Mac, specify `--device mps` explicitly. Each query
-modality currently starts a new process, so first search may be slow,
-especially with model loading. Native worker failure now becomes a
-clear exception without killing the search UI; this is **not a proven
-fix for crashes inside PyTorch itself**.
-
-```bash
-scene-search search "project deadline" --index artifacts/demo-index-isolated --mode transcript --device mps
-scene-search search "project deadline" --index artifacts/demo-index-isolated --mode hybrid --device mps
-SCENE_INDEX=artifacts/demo-index-isolated python -m streamlit run app.py --server.address 127.0.0.1
-```
-
-Do not run search until `artifacts/demo-index-isolated/build.json`
-exists. To diagnose a worker crash, retain its traceback and exit code.
-The explicit `--embedding-mode in-process` option is for testing only
-on machines affected by native PyTorch crashes.
-
-## 3. Search and play
-
-```bash
-scene-search search "Two people talking at a table" --mode visual
-scene-search search "Someone discusses a project deadline" --mode transcript
-scene-search search "A person explains something while using a laptop" --mode hybrid
-python -m streamlit run app.py
-```
-
-Open `http://127.0.0.1:8501`. Choose a result to start playback at its window.
-For a different index:
-
-```bash
-SCENE_INDEX=artifacts/index-v2 python -m streamlit run app.py
-```
-
-Use English for visual and hybrid queries. Multilingual transcript embeddings
-are included, but Bengali/Japanese retrieval quality is not established.
-CLIP has a short token limit; keep visual queries concise.
-
-Visual scoring is the maximum frame cosine similarity in a window. Transcript
-scoring is the maximum cosine similarity among segments overlapping a window.
-Each window occurs once per ranking. Hybrid uses full-list RRF with constant 60,
-not a sum of incompatible cosine scores. All candidates are scanned for this
-small corpus. A speech-free window is absent from transcript ranking. If all
-speech is absent, transcript returns no results and hybrid follows visual rank.
-There is no confidence threshold; top results may all be irrelevant.
-
-## 4. Annotate and evaluate
-
-```bash
-scene-search init-labels --index artifacts/index --output evaluation/labels.json
-```
-
-1. Use the **Evaluate & annotate** tab to watch source windows, without
-   consulting ranked search results.
-2. Load the draft labels file. Fill its 24 queries: 8 visual, 8 speech, 8 mixed.
-   Replace any query that has no relevant moment in this corpus.
-3. Hand-label every relevant window ID, such as `video_01:00012` (120–130s).
-   Label windows containing visible/audible evidence sufficient to answer the
-   query; label both sides of a boundary if both independently qualify.
-4. Keep 6 development queries and 18 held-out test queries. Do not copy queries
-   between splits. Choose parameters on dev, freeze them, and run test once.
-5. Mark the annotations complete and download `labels.json`. Put it in
-   `evaluation/labels.json`. Session edits are not saved until downloaded.
-
-```bash
-scene-search evaluate --labels evaluation/labels.json --split dev --output reports/dev-v1
-scene-search evaluate --labels evaluation/labels.json --split test --output reports/test-v1
-```
-
-The evaluator rejects draft annotations, empty relevance sets, unknown window
-IDs, duplicate queries, stale build hashes and existing report directories.
-Reports include overall/per-type CSV metrics, per-query false positives and
-misses, a Markdown comparison, and an evidence manifest with build/label hashes.
-
-- **Recall@5:** relevant windows retrieved / all manually relevant windows,
-  averaged across queries. Queries with more than five relevant windows cannot
-  reach 1.0 at k=5; document this instead of silently reducing the denominator.
-- **Hit@5:** fraction of queries with any correct window in the first five.
-- **MRR@5:** mean reciprocal rank of the first correct result (zero if absent).
-
-Matching uses exact fixed-window IDs. These metrics are **window retrieval**
-metrics, not automatically true semantic-scene recall. Adjacent windows are
-distinct units. Annotation errors and unlabelled positives bias the evaluation;
-have another person review a subset where possible. The small shared-video
-test set supports a corpus-specific comparison, not generalization claims.
-
-## 5. Analyze failures and finish the portfolio
-
-Fill the human diagnosis fields in the generated `report.md`; do not label a
-suspected cause as proven. Review 3–5 failures with screenshots/timestamps you
-are permitted to publish. Candidate causes to check:
-
-| Observation | Possible cause to verify |
+| Resource | Purpose |
 | --- | --- |
-| A short action is missed | Two-second sampling skipped it |
-| A similar-looking scene is returned | CLIP captures appearance, not precise action/time |
-| The topic is missed in transcript search | ASR error or embedding mismatch |
-| Hybrid ranks a correct result lower | An irrelevant modality outranks useful evidence |
+| [Architecture](docs/ARCHITECTURE.md) | Component diagram, search pipeline and data contracts |
+| [Local release audit](docs/LOCAL_RELEASE_RESULTS_2026-10-27.md) | Provenance, metrics, limitations and failure cases |
+| [Project closure](docs/PROJECT_CLOSURE.md) | Phase status, evidence and outstanding external sign-offs |
+| [Developer guide](docs/DEVELOPER_GUIDE.md) | Ingestion, CLI, benchmarks and platform troubleshooting |
+| [বাংলা quickstart](docs/QUICKSTART_BN.md) | Bangla setup and existing Mac instructions |
+| [Security review](docs/SECURITY_REVIEW.md) | Threat model, safeguards and out-of-scope risks |
+| [Demo storyboard](docs/DEMO_RECORDING.md) | Rights-aware 80-second demo recording plan |
+| [Contributing](CONTRIBUTING.md) / [Security policy](SECURITY.md) | Development and vulnerability reporting guidance |
 
-Copy measured test results into the table above, record corpus/license details,
-dependency versions and hardware, and add a short demo recording.
-Do not claim improvements unless the measured comparison supports them.
+## Usage and attribution
 
-CV wording after implementation verification, without invented numbers:
-
-> 動画シーン検索PoCを開発。Whisper・CLIP・FAISSを用い、映像・音声文字起こし・統合検索を実装。
-
-After manually labelled evaluation, add the actual query count and Recall@5
-comparison. See `docs/VALIDATION.md` for what was checked during this build.
-
-## Software checks
-
-```bash
-python -m unittest discover -s tests -v
-RUN_INTEGRATION=1 python -m unittest discover -s tests -v
-python scripts/real_model_smoke.py --index artifacts/demo-index-isolated --device mps
-```
-
-The integration suite uses real PyAV/FAISS and Streamlit AppTest with fake
-encoders/ASR so it runs without model downloads. The final smoke script uses
-real CLIP, multilingual MiniLM and Whisper tiny on generated video/speech;
-it supports an existing index with `--index` or generates its own synthetic videos using ordinary FFmpeg and the built-in macOS `say` fallback (`--generate`). Neither check measures real-world
-retrieval quality. Normal ingestion does not require that ffmpeg executable.
-
-## Limitations and local security
-
-- v0.1 uses fixed windows, not shot-boundary detection or a temporal video model.
-- Sampling uses video presentation timestamps; variable-frame-rate sources should be converted
-  to constant FPS before ingestion. Video codec metadata may be imperfect.
-- The local app has no user authentication and is bound to loopback. Do not
-  expose it publicly; it can display the private corpus.
-- Load only locally generated, trusted FAISS artifacts. Hash checks detect
-  accidental corruption, not malicious replacement of both files and hashes.
-- Models run locally after download. Model downloads contact external hosts.
-  No paid cloud inference, automatic uploads, or third-party media download occurs.
-- Build metadata includes original absolute media paths; redact before publication.
-
-## References
-
-- [faster-whisper](https://github.com/SYSTRAN/faster-whisper)
-- [Sentence Transformers image search](https://sbert.net/examples/sentence_transformer/applications/image-search/README.html)
-- [FAISS](https://github.com/facebookresearch/faiss)
-- [Streamlit video playback](https://docs.streamlit.io/develop/api-reference/media/st.video)
-
-## Synthetic development measurement (2026-10-26, pre-routing baseline)
-
-The user measured the original **equal-weight** RRF on 6 synthetic
-development queries. Metrics (Recall@5 / MRR@5) were visual
-0.6667 / 0.6667; transcript 1.0000 / 1.0000; hybrid 0.8333 / 0.7500.
-The results are synthetic fixtures with deterministic labels, **not**
-real-world retrieval accuracy. The intent-aware ranking implementation
-above changes that baseline, and requires a new dev run followed by one
-held-out test evaluation. Do not present the baseline numbers as the
-result of the revised implementation.
-
-
-### Evaluation performance
-
-`scene-search evaluate` batches all 6 development (or 18 held-out test)
-query texts for each modality. This reuses one native model load per modality
-per evaluation, rather than 2 × number-of-queries subprocess launches.
-The reported per-query runtime is an **amortized batch share**, not a claim
-about interactive single-query latency. Live search remains isolated per query
-to protect the Streamlit process from native model failures. Measure wall time
-on the target Mac before claiming throughput improvements.
-
-### Machine-readable CLI output
-
-`scene-search search` and `scene-search ingest` write their final JSON
-results to **stdout**. Progress messages from media processing and the
-isolated model workers go to **stderr**, so other tools can safely capture
-or pipe successful JSON without mixing it with model progress logs.
-
-Release status and exact verification scope: [Validation](docs/VALIDATION.md), [Security Review](docs/SECURITY_REVIEW.md) and [Portfolio Completion](docs/PORTFOLIO_COMPLETION.md).
-
-
-## Local Studio UI (October 2026)
-
-The Streamlit front end now has a responsive video search workspace with a
-**collection selector** in the left sidebar, four panels (Search,
-Evaluate & annotate, Video library, Add videos), preview playback,
-timestamped search results and source/license details.
-
-**Select the actual indexed videos** from the sidebar:
-- portfolio-real-v1: Steve Wozniak interview and Tears of Steel (2 videos)
-- portfolio-real-v2: the same two plus NASA (3 videos), only if the
-  incremental third-video build was completed successfully
-- demo-index-isolated: three synthetic colored-card videos (9 windows);
-  do not confuse it with the real portfolio corpus
-
-To index NASA without losing the two-video corpus, follow
-[Add third video](docs/ADD_THIRD_VIDEO.md). Switching collections
-invalidates browser-session search results and annotations, but never
-modifies local on-disk indexes or media. The browser only offers indexes
-that have completed build.json files.
-
-```bash
-cd ~/video-scene-search
-source .venv/bin/activate
-git pull --ff-only origin MdNaim
-SCENE_INDEX=artifacts/portfolio-real-v2 python -m streamlit run app.py
-```
-
-The **Add videos** tab is for NEW, self-owned or licensed local MP4 clips
-with audio (at most 250 MiB). A successful upload verifies metadata and
-writes a fresh private manifest into ignored data/imports/. It **does not
-automatically index** that footage, merge it with an existing corpus or
-send it to GitHub; copy the printed ingest command into Terminal.
-This feature remains a local research convenience, not a public upload
-service or a media-malware sandbox. Keep the web server on 127.0.0.1.
+Third-party footage has distinct rights and attribution requirements; verify them before reproducing screenshots, faces, music or clips. See [video source catalogue](docs/VIDEO_SOURCES.md). No third-party video is distributed here. A code reuse license has **not been specified** in this repository; do not assume an open-source license applies.
