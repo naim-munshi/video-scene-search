@@ -70,3 +70,44 @@ def preview_frames(videos, frames, index_root):
                 break
         previews[video["id"]] = image
     return previews
+
+
+
+def playback_checkpoints(duration):
+    """Three distinct start/middle/end checkpoints within a sourced MP4."""
+    import math
+    duration = float(duration)
+    if not math.isfinite(duration) or duration < 40:
+        raise ValueError("Browser playback checklist requires at least 40 seconds")
+    return [
+        ("Beginning", 5),
+        ("Middle", int(duration // 2)),
+        ("Near end", int(duration - 15)),
+    ]
+
+
+def browser_checklist_status(build_sha256, checks, video_ids):
+    """Only a human can attest browser playback, not CI or model evaluation.
+
+    *checks* maps video IDs to 3 named checkpoint booleans. An incomplete
+    checklist is always NOT_VERIFIED, and even a completed checklist is
+    self-attestation (not independent testing or proof of playback).
+    """
+    ids = list(video_ids)
+    checkpoints = ("Beginning", "Middle", "Near end")
+    complete = (len(ids) == 3 and len(set(ids)) == 3 and
+                all(checks.get(vid, {}).get(step) is True
+                    for vid in ids for step in checkpoints))
+    return {
+        "status": "USER_SELF_ATTESTED" if complete else "NOT_VERIFIED",
+        "source": "manual_Streamlit_checkbox_self_attestation",
+        "not_automated_safari_test": True,
+        "independent_ground_truth_verified": False,
+        "build_sha256": build_sha256,
+        "expected_sources": ids,
+        "checkpoints_per_video": list(checkpoints),
+        "confirmed_checkpoints": sum(
+            checks.get(vid, {}).get(step) is True
+            for vid in ids for step in checkpoints),
+        "required_checkpoints": 3 * len(ids),
+    }
