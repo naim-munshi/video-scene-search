@@ -86,6 +86,26 @@ python -m unittest discover -s tests -v
 
 To add your own video, record its provenance and permission in a manifest, then run `scene-search ingest --manifest examples/corpus.json --output artifacts/index`. **The example manifest must be edited and rights confirmed before use.** See the [developer guide](docs/DEVELOPER_GUIDE.md) for full ingestion steps, synthetic demo, MPS troubleshooting and reproducible evaluation.
 
+## Final acceptance audit
+
+After the owner's three-video local engineering release and media preflight have
+both passed, check the evidence in one read-only command:
+
+```bash
+python scripts/final_acceptance.py
+```
+
+This automatically locates the most recent local release and media preflight
+reports and distinguishes **engineering PASS** from **browser NOT_VERIFIED**.
+Once all nine playback checks have genuinely been completed in Video Library,
+the downloaded self-attestation can be reviewed separately:
+
+```bash
+python scripts/final_acceptance.py --browser-attestation ~/Downloads/browser-playback-self-attestation.json
+```
+
+Self-attestation is not third-party Safari certification or independently
+verified ground truth; no user credentials or media are uploaded.
 ## Engineering quality and limitations
 
 - **Evidence:** GitHub Actions checks Python compilation and dependency-light unit tests. Native FFmpeg/MPS and actual video playback are checked separately on the Mac.
