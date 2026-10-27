@@ -9,7 +9,7 @@ video+audio decode যাচাই এবং চাইলে Safari playback-এ
 ```bash
 cd ~/video-scene-search
 source .venv/bin/activate
-git pull --ff-only origin MdNaim
+git pull --ff-only origin main
 python scripts/media_playback_preflight.py --index artifacts/portfolio-real-v2
 SCENE_INDEX=artifacts/portfolio-real-v2 python -m streamlit run app.py --server.address 127.0.0.1
 ```
@@ -24,40 +24,6 @@ AI-assisted query labels এখনো independently verified নয়।
 
 ---
 
-
-## বর্তমানে তৈরি তিন-ভিডিও প্রজেক্টের Final Engineering Check (এই অংশটাই এখন ব্যবহার করো)
-
-তোমার Mac-এ NASA, Interview ও Tears of Steel আগেই indexed হয়েছে।
-**নতুন করে ভিডিও download, ingest বা query লেখার প্রয়োজন নেই।**
-
-Terminal-এ একবার পুরো block copy-paste করো:
-
-```bash
-cd ~/video-scene-search
-source .venv/bin/activate
-git pull --ff-only origin MdNaim
-
-python scripts/finish_portfolio.py --preflight-only
-python scripts/finish_portfolio.py --device mps
-
-LATEST=$(ls -dt reports/portfolio-release-* | head -n 1)
-cat "$LATEST/RELEASE_SUMMARY.md"
-open -R "$LATEST/shareable-release-evidence.zip"
-```
-
-এই script আগের v2 index, ২৪টি query-এর JSON এবং Mac-এ cached models দিয়ে
-৬টি dev ও ১৮টি test query-এর **preliminary AI-assisted report** তৈরি করবে।
-সব result থাকবে নতুন reports/portfolio-release-... folder-এ।
-আগের video, labels, index, report বা Mac-এর OS বদলাবে না।
-
-কোনো error হলে শেষের Terminal output পাঠাও। Successful হলে
-shareable-release-evidence.zip file-টি upload করো, ফলাফল review করা যাবে।
-
-**মনে রাখবে:** AI-assisted labels দিয়ে পাওয়া score human-verified real-world
-accuracy নয়। Full Safari playback acceptance, independent ground-truth review
-এবং demo recording আলাদা sign-off। বিস্তারিত docs/PORTFOLIO_COMPLETION.md।
-
----
 
 ## ১. Python environment
 
@@ -128,7 +94,7 @@ scene-search evaluate --labels evaluation/labels.json --split test --output repo
 নতুন কোড এবং integrity check চালাও:
 
 ```bash
-git pull --ff-only origin MdNaim
+git pull --ff-only origin main
 python -m pip install -e .
 python scripts/acceptance_check.py --index artifacts/demo-index-isolated
 scene-search search "project deadline" --index artifacts/demo-index-isolated --mode hybrid --device mps
@@ -145,7 +111,7 @@ cat reports/demo-dev-intent-v1/report.md
 ```bash
 cd ~/video-scene-search
 source .venv/bin/activate
-git pull --ff-only origin MdNaim
+git pull --ff-only origin main
 python scripts/prepare_portfolio_videos.py --plan
 python scripts/prepare_portfolio_videos.py
 python scripts/real_video_preflight.py --manifest data/portfolio-corpus.json
@@ -164,7 +130,7 @@ Browser-এ যদি Synthetic demo 1, 2, 3 দেখায় এবং ৯টি
 ```bash
 cd ~/video-scene-search
 source .venv/bin/activate
-git pull --ff-only origin MdNaim
+git pull --ff-only origin main
 SCENE_INDEX=artifacts/portfolio-real-v2 python -m streamlit run app.py
 ```
 
