@@ -1,14 +1,39 @@
+# Python environments, packaging and transient outputs
 .venv/
+venv/
 __pycache__/
+*.py[cod]
 *.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Secrets and local machine configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.DS_Store
+.idea/
+.vscode/
+
+# User-owned/source media and generated data; NEVER force-add
 data/
 artifacts/
+evaluation/
 reports/
-.DS_Store
 *.mp4
 *.mov
 *.mkv
-
-evaluation/
 *.webm
 *.wav
+*.faiss
+*.safetensors
+*.ckpt
+*.pth
+*.pt
