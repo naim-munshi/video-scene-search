@@ -21,7 +21,7 @@ have been independently certified.
 | P1 | Ingestion, frame+ASR embeddings, FAISS, UI search and timestamps | COMPLETE | Three-video indexed Mac corpus and screenshot demonstration of NASA playback |
 | P2 | Batch development evaluation, transparent retrieval/failure analysis | COMPLETE, EXPLORATORY | 6 dev candidate weak-label queries; per-query errors and recall ceilings |
 | P3 | Repeatable full local engineering release | PASS | Mac `LOCAL_ENGINEERING_CHECKS_PASS`: index hashes, 6 dev + 18 provisional test queries |
-| P4 | Safe local media validation and guided Safari checklist | IMPLEMENTED; LOCAL SIGN-OFF UNVERIFIED | FFprobe/FFmpeg spot-decode script plus nine-step self-attestation UI |
+| P4 | Safe local media validation and guided Safari checklist | **LOCAL MEDIA PASS**; Safari self-attestation pending | Real three-source FFmpeg decode passed; nine-step browser checklist implemented |
 | P5 | Final README, architecture, limitations, demo storyboard, CV description | COMPLETE | Version-controlled documentation and release audit |
 
 ## Verified engineering facts
@@ -42,13 +42,17 @@ have been independently certified.
 
 ## Open external sign-offs (do not misrepresent as completed)
 
-1. `LOCAL_MEDIA_DECODE`: the FFmpeg/FFprobe checker is implemented and
-   covered by CI mock tests, but has not run against the owner's original
-   private MP4 bytes in this GitHub-only development session.
+1. `LOCAL_MEDIA_DECODE`: **PASS on the owner's Mac**, from 27 Oct 2026
+   report `reports/media-preflight-20261027-145120.json`. All three original
+   sources had H.264/AAC, actual beginning/middle/near-end decoded video
+   frames and a decoded audio excerpt. This is a native media integrity check,
+   not Safari/browser acceptance.
 2. `SAFARI_BROWSER`: the actual operator must check video and sound at
    Beginning/Middle/Near end in the three original sources. The app now
+   preserves confirmations across source and timestamp changes and
    generates a JSON of **USER_SELF_ATTESTED** results only after all nine
-   boxes are checked; unchecked cases remain `NOT_VERIFIED`.
+   boxes are checked and source videos remain present; incomplete sessions
+   remain `NOT_VERIFIED`.
 3. `INDEPENDENT_BENCHMARK`: the 24 candidate labels came from sampled
    contact sheets and ASR. An independent reviewer checking raw footage
    and a new untouched test set are necessary for credible statistical
