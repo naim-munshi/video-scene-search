@@ -33,7 +33,7 @@ class MediaPreflightTests(unittest.TestCase):
                         {"codec_type": "audio", "codec_name": "aac"},
                     ],
                 }))
-        return SimpleNamespace(returncode=0, stderr="", stdout="")
+        return SimpleNamespace(returncode=0, stderr="", stdout="#hash: SHA256\n0, 0, 0, 1, 4096, abcdef\n")
 
     def video(self, vid="film"):
         return {"id": vid, "path": str(self.file), "duration": 600}
@@ -80,6 +80,16 @@ class MediaPreflightTests(unittest.TestCase):
             return result
         with self.assertRaisesRegex(RuntimeError, "decode failure"):
             check_source(self.video(), runner=fail)
+
+    def test_zero_decoded_frames_are_a_failure_even_if_ffmpeg_exits_zero(self):
+        def no_frame(command, **kwargs):
+            result = self.fake_runner(command, **kwargs)
+            if command[0] == "ffmpeg":
+                result.stdout = "#hash: SHA256\\n#header only\\n".replace(
+                    "\\\\n", "\\n")
+            return result
+        with self.assertRaisesRegex(RuntimeError, "No decodable video"):
+            check_source(self.video(), runner=no_frame)
 
     def test_three_source_check_never_claims_browser_acceptance(self):
         videos = [self.video(vid) for vid in (
