@@ -66,15 +66,24 @@ def check_source(video, runner=subprocess.run):
     if not math.isfinite(declared) or abs(declared - duration) > 2.0:
         raise ValueError(f"Duration mismatch for {video['id']}")
     timestamps = sample_seconds(duration)
+    def require_decoded_packets(output, kind):
+        # FFmpeg may exit 0 with zero decodable frames. Verify at least one
+        # actual framehash row (not only the stream header) was emitted.
+        if not any(line.strip() and not line.lstrip().startswith("#")
+                   for line in output.splitlines()):
+            raise RuntimeError(f"No decodable {kind} frames: {video['id']}")
+
     for seek in timestamps:
-        run_checked([
+        decoded = run_checked([
             "ffmpeg", "-hide_banner", "-nostdin", "-v", "error",
             "-ss", f"{seek:.2f}", "-i", str(path), "-an",
-            "-frames:v", "1", "-f", "null", "-"], runner=runner)
-    run_checked([
+            "-frames:v", "1", "-f", "framehash", "-"], runner=runner)
+        require_decoded_packets(decoded, "video")
+    audio = run_checked([
         "ffmpeg", "-hide_banner", "-nostdin", "-v", "error",
         "-ss", f"{timestamps[1]:.2f}", "-i", str(path), "-vn",
-        "-t", "2", "-f", "null", "-"], runner=runner)
+        "-t", "2", "-f", "framehash", "-"], runner=runner)
+    require_decoded_packets(audio, "audio")
     return {
         "video_id": video["id"],
         "duration_seconds": round(duration, 2),
