@@ -91,7 +91,10 @@ def hybrid_weights(query):
         r"\b(visual|scene|screen|frame|shown?|showing|appears?|visible|"
         r"colors?|colours?|red|blue|green|yellow|purple|orange|black|"
         r"white|pink|wears?|wearing|standing|walking|sitting|people|"
-        r"person|woman|man|child|animal|car|train|building|table|laptop)\b", q))
+        r"person|woman|man|men|women|child|animal|car|train|building|table|laptop|"
+        r"seated|seating|faces?|close-up|shot|camera|captions?|subtitles?|"
+        r"gestures?|hands?|railing|rover|rocket|robots?|machinery|machine|"
+        r"holographic|equipment|laboratory|astronaut|futuristic|outdoors?)\b", q))
     if spoken and not visible:
         return 0.2, 1.0
     if visible and not spoken:
