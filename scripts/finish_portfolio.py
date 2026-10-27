@@ -9,6 +9,7 @@ are always labeled provisional, not independent retrieval accuracy.
 """
 import argparse
 import json
+import os
 import platform
 import sys
 import zipfile
@@ -82,7 +83,7 @@ def make_summary(inputs, dev, test):
         "# Video Scene Search — local release evidence", "",
         "**Retrieval:** Whisper ASR, CLIP, multilingual MiniLM, FAISS, "
         "intent-weighted RRF; three licensed-source videos, 10-second windows.", "",
-        "**LABEL WARNING: AI-assisted weak-label scores are exploratory "
+        "**LABEL WARNING: AI-ASSISTED WEAK LABELS; scores are exploratory "
         "sanity checks, NOT independently human-verified real-world accuracy.**"
         if not inputs["independently_verified"] else
         "**Ground-truth verification was asserted by file metadata; this "
@@ -132,10 +133,12 @@ def finish(index, labels, output, device="mps", offline=True):
     inputs = inspect_release_inputs(index, labels)
     output.mkdir(parents=True)
     write_json(output / "input-manifest.json", inputs)
-    if offline:
-        from scene_search.query_worker import enable_offline_cache
-        enable_offline_cache()
+    model_cache_flags = ("HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE")
+    original_flags = {name: os.environ.get(name) for name in model_cache_flags}
     try:
+        if offline:
+            from scene_search.query_worker import enable_offline_cache
+            enable_offline_cache()
         from scene_search.search import SearchEngine
         from scene_search.evaluate import evaluate
         engine = SearchEngine(index, device=device)
@@ -162,6 +165,14 @@ def finish(index, labels, output, device="mps", offline=True):
                    {"status": "INCOMPLETE", "error": str(exc),
                     "note": "Existing media/index/labels were not changed"})
         raise
+    finally:
+        # A release run may be invoked by a parent application or unit test.
+        # Never leave the process environment in offline mode accidentally.
+        for name, previous in original_flags.items():
+            if previous is None:
+                os.environ.pop(name, None)
+            else:
+                os.environ[name] = previous
 
 
 def main():
