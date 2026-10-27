@@ -5,18 +5,66 @@ visual similarity, transcript similarity, and reciprocal rank fusion (RRF).
 Built as an AI engineering portfolio project for media retrieval and analysis
 of false positives and missed relevant scenes. It is not affiliated with ABEMA.
 
-## Status
+## Status — three-video portfolio prototype
 
-Implementation includes ingestion, FAISS indexes, three retrieval modes, a
-Streamlit playback/annotation interface, and reproducible evaluation reports.
-No real-corpus retrieval quality is claimed yet. Supply permission-cleared videos
-and manually label queries before reporting Recall@5. No paid API is required.
+The local three-video pipeline, Streamlit search/playback, FAISS indexes,
+Mac MPS model workers and 24-query **exploratory** evaluation are implemented.
+The repository is a local research PoC, **not a public multi-user SaaS**.
+
+**Real video collection:** 3 licensed-source videos (NASA Apollo 15, Steve
+Wozniak interview and *Tears of Steel*), 41:48 combined, 252 indexed
+10-second windows and 453 transcription segments. Source media/indexes
+remain on the user's Mac and are intentionally excluded from Git.
+
+### Measured 27 Oct 2026: original 6-query development weak-label baseline
+
+The user's Mac executed both CLIP and MiniLM workers on MPS successfully
+with offline cached models. These values were captured **before** the newer
+visual-intent keyword update, so they are historical baseline numbers, not
+an assertion of improvement from that change.
 
 | Method | Recall@5 | Hit@5 | MRR@5 |
-| --- | --- | --- | --- |
-| Visual-only | Not measured | Not measured | Not measured |
-| Transcript-only | Not measured | Not measured | Not measured |
-| Hybrid | Not measured | Not measured | Not measured |
+| --- | ---: | ---: | ---: |
+| Visual-only | 0.3722 | 0.6667 | 0.6667 |
+| Transcript-only | 0.5167 | 0.6667 | 0.5417 |
+| Hybrid | 0.6333 | 0.8333 | 0.8333 |
+
+**Critical benchmark caveat:** relevance IDs were suggested by an AI using
+contact sheets and ASR, **not** independently human-verified. These are
+weak-label sanity checks, **not independently measured real-world quality**,
+and must not be represented as such on a CV. The q02 weak labels include ten
+relevant windows, limiting its maximum Recall@5 to 0.5. The initial q03
+intro/captions query was missed by all three retrieval methods. A change to
+visual-intent routing is present on branch MdNaim; it must be remeasured
+before claiming improvement. The 18-query held-out split has **not**
+been executed on the updated Mac environment.
+
+### Complete the reproducible local engineering release
+
+With the already-created original index and weak labels present on the Mac:
+
+```bash
+cd ~/video-scene-search
+source .venv/bin/activate
+git pull --ff-only origin MdNaim
+python scripts/finish_portfolio.py --preflight-only
+python scripts/finish_portfolio.py --device mps
+```
+
+The release script first audits index and labels, then uses the existing
+Hugging Face model cache offline and creates a **NEW** unique directory
+under reports/ with dev/test summaries, per-query evidence, build/source
+hashes and a shareable evidence ZIP (no original videos). If a model is
+missing, it records INCOMPLETE rather than claiming success.
+It does not modify the original index, labels, videos or earlier reports.
+The test split is a **provisional weak-label engineering check**, not a
+human ground-truth benchmark. For full details see
+[portfolio completion](docs/PORTFOLIO_COMPLETION.md).
+
+**Still needs external acceptance:** independent verification of evaluation
+labels for scientific accuracy, three-video Safari playback sign-off,
+attributed 60–90s recording for the portfolio. Security hardening for
+public hosting is outside this local release's scope.
 
 ## Start with a synthetic demo (no private videos needed)
 
@@ -183,7 +231,7 @@ There is no confidence threshold; top results may all be irrelevant.
 scene-search init-labels --index artifacts/index --output evaluation/labels.json
 ```
 
-1. Use the **Annotate before evaluating** tab to watch source windows, without
+1. Use the **Evaluate & annotate** tab to watch source windows, without
    consulting ranked search results.
 2. Load the draft labels file. Fill its 24 queries: 8 visual, 8 speech, 8 mixed.
    Replace any query that has no relevant moment in this corpus.
