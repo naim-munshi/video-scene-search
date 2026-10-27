@@ -12,6 +12,16 @@ VISUAL_MODEL = "sentence-transformers/clip-ViT-B-32"
 TEXT_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
 
+def enable_offline_cache():
+    """Use only local model files, retaining SSL/certificate verification.
+
+    Call BEFORE Hugging Face/Transformers imports: both libraries may read
+    offline environment switches at import time.
+    """
+    os.environ["HF_HUB_OFFLINE"] = "1"
+    os.environ["TRANSFORMERS_OFFLINE"] = "1"
+
+
 def select_device(requested, torch_module):
     if requested == "auto":
         return "mps" if torch_module.backends.mps.is_available() else "cpu"
@@ -51,7 +61,17 @@ def encode_many(queries, modality, output, device="auto"):
     selected = select_device(device, torch)
     model_id = VISUAL_MODEL if modality == "visual" else TEXT_MODEL
     print(f"Query worker: {len(queries)} {modality} queries on {selected}", file=sys.stderr, flush=True)
-    model = SentenceTransformer(model_id, device=selected)
+    try:
+        model = SentenceTransformer(model_id, device=selected)
+    except (OSError, ValueError) as exc:
+        if os.environ.get("HF_HUB_OFFLINE") == "1":
+            raise RuntimeError(
+                f"Offline model cache incomplete for {model_id}. "
+                "This evaluation cannot run without a cached copy. "
+                "Keep HTTPS verification enabled; restore or securely "
+                "download the model using a trusted CA certificate."
+            ) from exc
+        raise
     with torch.inference_mode():
         matrix = model.encode(queries, batch_size=8, normalize_embeddings=True,
                               convert_to_numpy=True, show_progress_bar=False)
