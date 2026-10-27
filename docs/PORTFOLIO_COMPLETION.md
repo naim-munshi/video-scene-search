@@ -91,6 +91,15 @@ and is no longer untouched for any future tuning.
 - GitHub README includes truthful historical weak-label dev metrics, setup,
   architecture, source attribution and release runner.
 - A reproducible no-video ZIP can be produced for sharing engineering evidence.
+- A local `scripts/media_playback_preflight.py` checks that all three
+  existing source MP4s have H.264/AAC streams and emits actual FFmpeg
+  framehash rows at beginning/middle/end and for a short audio excerpt.
+  Its code has CI tests, but the original media still requires the owner's
+  Mac for native execution.
+- Video Library now includes a three-timestamp playback selector and a
+  nine-checkbox Safari/picture/sound self-attestation download; an unchecked
+  or incomplete checklist reports NOT_VERIFIED. User self-attestation is
+  not independent browser certification.
 - New code has dependency-light GitHub CI tests. CI does NOT simulate Apple
   MPS, local copyrighted media, or Safari playback.
 
@@ -100,7 +109,8 @@ and is no longer untouched for any future tuning.
    Sampled JPEG/ASR weak annotations are insufficient for independent claims.
 2. On the Mac, verify search result and playback at matching timestamps for
    Interview, Tears of Steel and NASA; check console errors and missing media.
-3. Record an attributed 60–90 second portfolio screen demonstration.
+3. Record an attributed 60–90 second portfolio screen demonstration,
+   if one is needed for publication; see docs/DEMO_RECORDING.md.
 4. Release script already ran successfully; preserve the existing report
    archive in reports/portfolio-release-20261027-132941.
 5. Public cloud multi-tenant deployment would require user auth, private
@@ -108,6 +118,11 @@ and is no longer untouched for any future tuning.
    this local prototype.
 
 ## Release interpretation
+
+Formal closed scope: `CLOSED_LOCAL_ENGINEERING_SCOPE` as defined in
+[PROJECT_CLOSURE.md](PROJECT_CLOSURE.md); this is not a human-verified
+benchmark or secure public production service.
+
 
 LOCAL ENGINEERING PASS confirmed by the supplied Mac release evidence:
 three-video index audit, query execution and both provisional reports.
