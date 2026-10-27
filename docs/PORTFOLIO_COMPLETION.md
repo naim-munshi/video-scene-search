@@ -94,11 +94,12 @@ and is no longer untouched for any future tuning.
 - A local `scripts/media_playback_preflight.py` checks that all three
   existing source MP4s have H.264/AAC streams and emits actual FFmpeg
   framehash rows at beginning/middle/end and for a short audio excerpt.
-  Its code has CI tests, but the original media still requires the owner's
-  Mac for native execution.
+  Its code has CI tests, and the original media now **passed** native
+  execution on the owner's Mac on 27 Oct 2026 (all three MP4s).
 - Video Library now includes a three-timestamp playback selector and a
-  nine-checkbox Safari/picture/sound self-attestation download; an unchecked
-  or incomplete checklist reports NOT_VERIFIED. User self-attestation is
+  nine-checkbox Safari/picture/sound self-attestation download. Completed
+  confirmations persist across video/timestamp switches within the browser
+  session; incomplete checklists report NOT_VERIFIED. User self-attestation is
   not independent browser certification.
 - New code has dependency-light GitHub CI tests. CI does NOT simulate Apple
   MPS, local copyrighted media, or Safari playback.
@@ -107,8 +108,10 @@ and is no longer untouched for any future tuning.
 
 1. A second person reviews relevance windows against actual video/audio.
    Sampled JPEG/ASR weak annotations are insufficient for independent claims.
-2. On the Mac, verify search result and playback at matching timestamps for
-   Interview, Tears of Steel and NASA; check console errors and missing media.
+2. The original three video files have passed native FFmpeg decoding.
+   Safari picture/sound playback across beginning, middle and end is still
+   a separate manual check; preserve the downloaded self-attestation only
+   when all nine observations were actually made.
 3. Record an attributed 60–90 second portfolio screen demonstration,
    if one is needed for publication; see docs/DEMO_RECORDING.md.
 4. Release script already ran successfully; preserve the existing report
