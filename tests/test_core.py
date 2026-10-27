@@ -186,6 +186,31 @@ class CoreTests(unittest.TestCase):
             self.assertIn("AI-ASSISTED WEAK LABELS ONLY", report)
             self.assertIn("not independently human-verified", report)
 
+    def test_report_explains_recall_ceiling_for_10_relevant_windows(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            write_json(root / "build.json", {"fixture": True})
+            windows = make_windows("v", 100)
+            labels = {"status": "annotated",
+                      "build_sha256": sha256(root / "build.json"),
+                      "queries": [{"id": "q02",
+                                   "text": "A seated person beside the rover",
+                                   "kind": "visual", "split": "dev",
+                                   "relevant": [w["id"] for w in windows]}]}
+            write_json(root / "labels.json", labels)
+            engine = SimpleNamespace(
+                root=root, windows=windows,
+                rankings=lambda text, mode: [(w["id"], 1.0)
+                                             for w in windows[:5]])
+            evaluate(engine, root / "labels.json", root / "report",
+                     split="dev", k=5)
+            report = (root / "report" / "report.md").read_text()
+            self.assertIn("maximum Recall@5 = 0.5000", report)
+            from scene_search.core import read_json
+            details = read_json(root / "report" / "per_query.json")
+            self.assertTrue(all(d["max_possible_recall_at_k"] == 0.5
+                                for d in details))
+
     def test_stale_build_labels_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
