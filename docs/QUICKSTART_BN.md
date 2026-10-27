@@ -20,6 +20,15 @@ Browser-এ **Video library** থেকে NASA / Interview / Tears of Steel-এ
 playback report download করতে পারবে। এটি automated Safari test নয়।
 AI-assisted query labels এখনো independently verified নয়।
 
+Final release-এর local evidence আবার যাচাই করতে (নতুন model চালানোর দরকার নেই):
+
+```bash
+python scripts/final_acceptance.py
+```
+
+এতে engineering ও video/audio PASS আলাদা দেখাবে, Safari manual
+check সম্পূর্ণ না হলে NOT_VERIFIED থাকবে।
+
 সম্পূর্ণ status: `docs/PROJECT_CLOSURE.md`।
 
 ---
