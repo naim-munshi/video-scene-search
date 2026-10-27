@@ -145,6 +145,32 @@ class CoreTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "directory exists"):
                 evaluate(engine, root / "labels.json", root / "report")
 
+    def test_ai_assisted_labels_must_disclose_weak_ground_truth(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            write_json(root / "build.json", {"fixture": True})
+            labels = self.labels()
+            labels.update({
+                "build_sha256": sha256(root / "build.json"),
+                "status": "annotated",
+                "annotation_method": "assistant_assisted_contact_sheets_and_asr",
+                "human_verified": False,
+                "independent_ground_truth": False,
+                "evaluation_scope": "weak_label_sanity_check_only_not_real_world_accuracy",
+            })
+            write_json(root / "labels.json", labels)
+            engine = SimpleNamespace(root=root, windows=make_windows("v", 20),
+                rankings=lambda query, mode: [("v:00000", .9)])
+            evaluate(engine, root / "labels.json", root / "report", k=1)
+            from scene_search.core import read_json
+            record = read_json(root / "report" / "evidence.json")
+            self.assertEqual(record["evaluation_scope"], "weak_label_sanity_check_only")
+            self.assertEqual(record["human_verified"], False)
+            self.assertEqual(record["independent_ground_truth"], False)
+            report = (root / "report" / "report.md").read_text()
+            self.assertIn("AI-ASSISTED WEAK LABELS ONLY", report)
+            self.assertIn("not independently human-verified", report)
+
     def test_stale_build_labels_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
