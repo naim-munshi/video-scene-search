@@ -1,5 +1,34 @@
 # Demo, retrieval evaluation, and portfolio acceptance
 
+> **October 27, 2026 project closeout:** the owner has already indexed
+> three source-attributed real videos (252 windows) and completed 6 dev +
+> 18 provisional test queries on a Mac. Metrics use **AI-assisted weak labels**
+> and are not independently verified accuracy. Local engineering release
+> `LOCAL_ENGINEERING_CHECKS_PASS`. The detailed results are in
+> [LOCAL_RELEASE_RESULTS_2026-10-27.md](LOCAL_RELEASE_RESULTS_2026-10-27.md)
+> and final scope/status are in [PROJECT_CLOSURE.md](PROJECT_CLOSURE.md).
+> The following A/B steps also describe how to reproduce from scratch;
+> do not download or ingest these original videos a second time.
+
+### Final existing-three-video acceptance (without rebuilding)
+
+```bash
+cd ~/video-scene-search
+source .venv/bin/activate
+git pull --ff-only origin MdNaim
+python scripts/media_playback_preflight.py --index artifacts/portfolio-real-v2
+SCENE_INDEX=artifacts/portfolio-real-v2 python -m streamlit run app.py --server.address 127.0.0.1
+```
+
+Media preflight checks H.264/AAC and decodes start/middle/end frames and
+an audio excerpt for every source. In Video Library the operator can
+manually check nine Safari playback checkpoints and export self-attestation.
+Neither proves independent semantic relevance accuracy, and no recording
+should be claimed until one has been created. See
+[DEMO_RECORDING.md](DEMO_RECORDING.md) for a ready-to-use 80-second storyboard.
+
+---
+
 There are **two independent tracks**. Do not combine their measurements.
 
 ## A. Reproducible synthetic demo (no third-party footage)
