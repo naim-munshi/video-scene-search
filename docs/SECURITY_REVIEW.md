@@ -51,9 +51,14 @@ they are **required before public service deployment**.
 ## Verification status
 
 Source/static review and automated unit checks are available.
-The user's Mac demonstrated successful isolated MPS ingestion and transcript/
-hybrid retrieval on synthetic videos. A separate human browser playback
-assessment, real-video evaluation and penetration test are **not yet done**.
+The user's Mac has now successfully indexed three source-attributed real
+videos and completed 24-query **AI-assisted weak-label** exploratory retrieval
+on MPS. This is not independent accuracy validation. The new
+`scripts/media_playback_preflight.py` can spot-decode video and audio via
+FFmpeg, and the Streamlit Video Library can collect a nine-checkpoint
+operator self-attestation. Neither has been verified against every local
+video/browser session in this GitHub-only change. Public-host security testing
+and a full penetration test have **not been performed**.
 
 
 ## New UI import surface (October 2026)
@@ -70,3 +75,19 @@ Uploaded material is still untrusted bytes, even with a valid suffix and
 ffprobe metadata. This is a loopback-only personal prototype. Do **not**
 expose Streamlit publicly; authentication, sandboxed media handling,
 malware scanning, quotas, deletion controls and secure hosting are absent.
+
+## v0.1 local engineering closeout
+
+The local single-user scope is formally closed with a documented Mac
+engineering release and passing CI; see `docs/PROJECT_CLOSURE.md`.
+A fresh native FFmpeg decoding check is available:
+
+```bash
+python scripts/media_playback_preflight.py --index artifacts/portfolio-real-v2
+```
+
+It checks H.264/AAC presence and spot decodes real video/audio frames at
+multiple timestamps; a PASS is **not** a browser/Safari security or playback
+certification. Likewise, manually checked Streamlit playback is only the
+operator's observation, not an independent audit. Do not expose this local
+app externally or treat the unverified weak labels as reliable accuracy.
