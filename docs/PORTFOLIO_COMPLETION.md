@@ -1,6 +1,6 @@
 # Video Scene Search — phased local portfolio completion / handoff
 
-Last updated: 27 October 2026. Repo branch: MdNaim. Deployment: LOCAL MAC ONLY.
+Last updated: 27 October 2026. Release branch: main. Deployment: LOCAL MAC ONLY.
 This document replaces the older synthetic-only completion checklist.
 
 ## Phase 1: Core retrieval and licensed portfolio corpus — IMPLEMENTED
@@ -53,7 +53,7 @@ indexes are neither modified nor included.
 
     cd ~/video-scene-search
     source .venv/bin/activate
-    git pull --ff-only origin MdNaim
+    git pull --ff-only origin main
     python scripts/finish_portfolio.py --preflight-only
     python scripts/finish_portfolio.py --device mps
 
