@@ -3,6 +3,7 @@ import json
 import os
 import shlex
 import subprocess
+from datetime import datetime, timezone
 from html import escape
 from pathlib import Path
 
@@ -12,6 +13,7 @@ from scene_search.core import sha256, validate_labels
 from scene_search.search import SearchEngine
 from scene_search.ui_helpers import (
     discover_indexes, format_index, is_synthetic, readable_time, preview_frames,
+    playback_checkpoints, browser_checklist_status,
 )
 
 APP_ROOT = Path(__file__).resolve().parent
@@ -312,7 +314,20 @@ with library_tab:
     with preview:
         media_path = Path(source["path"])
         if media_path.is_file():
-            st.video(str(media_path))
+            checkpoints = playback_checkpoints(source["duration"])
+            checkpoint = st.selectbox(
+                "Playback checkpoint — play and listen",
+                range(len(checkpoints)),
+                format_func=lambda i: (
+                    f"{checkpoints[i][0]} · {readable_time(checkpoints[i][1])}"
+                ), key=f"playback_checkpoint_{root.name}_{library_id}")
+            step, offset = checkpoints[checkpoint]
+            st.video(str(media_path), start_time=offset)
+            digest_short = sha256(root / "build.json")[:12]
+            st.checkbox(
+                "I played this timestamp and confirmed BOTH picture and sound",
+                key=f"playback_confirm_{digest_short}_{library_id}_{step}")
+            st.caption("Self-reported local Safari check, not automated browser testing.")
         else:
             st.warning("Original video is missing from its saved path.")
     with info:
@@ -327,6 +342,36 @@ with library_tab:
         st.write(source.get("license") or "Not recorded")
         st.markdown("**Attribution**")
         st.write(source.get("attribution") or "Not recorded")
+    st.markdown("#### Local browser playback sign-off")
+    st.caption(
+        "Check Beginning, Middle and Near end for EACH of the three sources. "
+        "A checked box is your own observation, not automatic proof of Safari playback."
+    )
+    evidence_digest = sha256(root / "build.json")
+    observations = {
+        video_id: {
+            name: bool(st.session_state.get(
+                f"playback_confirm_{evidence_digest[:12]}_{video_id}_{name}", False))
+            for name in ("Beginning", "Middle", "Near end")
+        }
+        for video_id in engine.videos
+    }
+    playback_status = browser_checklist_status(
+        evidence_digest, observations, engine.videos.keys())
+    st.caption(
+        f"Checked: {playback_status['confirmed_checkpoints']}"
+        f"/{playback_status['required_checkpoints']} timestamps"
+    )
+    if playback_status["status"] == "USER_SELF_ATTESTED":
+        playback_status["recorded_at_utc"] = datetime.now(timezone.utc).isoformat()
+        st.download_button(
+            "Download my manual playback sign-off JSON",
+            json.dumps(playback_status, ensure_ascii=False, indent=2),
+            file_name="browser-playback-self-attestation.json",
+            mime="application/json",
+        )
+    else:
+        st.info("Playback acceptance is not yet verified. All 9 manual checks are required.")
     with st.expander("Browse indexed timestamps"):
         st.dataframe(
             [{"Window": w["id"], "From": readable_time(w["start"]),
