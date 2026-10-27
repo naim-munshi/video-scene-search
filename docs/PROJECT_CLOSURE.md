@@ -81,6 +81,16 @@ tab and perform nine manual playback checkpoints. Do not rerun the
 The previously accepted release artifact remains under
 `reports/portfolio-release-20261027-132941/` on the owner's Mac.
 
+## Read-only evidence cross-check
+
+Use `python scripts/final_acceptance.py` after the earlier successful
+release and media preflight. It checks the previously stored 6/18
+query split, weak-label provenance, original three-video media decode
+evidence and optional nine-point operator playback self-attestation.
+Missing, inconsistent or unrelated evidence is rejected; no pass is
+claimed from GitHub-only tests. It never modifies source/index/reports.
+The resulting status before optional manual Safari review is
+`LOCAL_ENGINEERING_PASS_BROWSER_PENDING`.
 ## Portfolio-ready claim
 
 **Safe description:** Developed a local multimodal video scene retrieval
