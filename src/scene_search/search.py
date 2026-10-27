@@ -37,6 +37,12 @@ def _query_embeddings_subprocess(queries, modality, device):
             process = subprocess.run(command, env=env, check=False, timeout=600)
         except subprocess.TimeoutExpired as exc:
             raise RuntimeError("Query encoder timed out after 600 seconds") from exc
+        if process.returncode and env.get("HF_HUB_OFFLINE") == "1":
+            raise RuntimeError(
+                "Offline query worker failed. Check whether both the CLIP and "
+                "MiniLM Hugging Face models are fully cached on this Mac; "
+                "see worker logs above. No TLS verification was disabled."
+            )
         if process.returncode:
             raise RuntimeError(
                 f"Query encoder subprocess exited with code {process.returncode}. "
