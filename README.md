@@ -98,6 +98,35 @@ labels for scientific accuracy, three-video Safari playback sign-off,
 attributed 60–90s recording for the portfolio. Security hardening for
 public hosting is outside this local release's scope.
 
+### Final local playback and portfolio closeout
+
+The Mac engineering release already passed. To verify actual video/audio
+decoding without rebuilding the index or re-running the 24-query benchmark:
+
+```bash
+cd ~/video-scene-search
+source .venv/bin/activate
+git pull --ff-only origin MdNaim
+python scripts/media_playback_preflight.py --index artifacts/portfolio-real-v2
+SCENE_INDEX=artifacts/portfolio-real-v2 python -m streamlit run app.py --server.address 127.0.0.1
+```
+
+The preflight checks H.264/AAC and decodes start/middle/end frames plus audio
+for all three locally stored MP4s. It **does not prove Safari playback**.
+In Streamlit's **Video library** choose each source and its Beginning,
+Middle and Near end playback checkpoints, confirm picture/sound, and
+download the optional self-attestation file after all nine checks.
+An uncompleted checklist always reports NOT_VERIFIED.
+
+The local software/engineering phase is closed. Human-reviewed ground
+truth, independently valid accuracy claims and a redistributed/attributed
+screen recording are separate external sign-offs.
+
+[Architecture](docs/ARCHITECTURE.md) ·
+[Local release audit](docs/LOCAL_RELEASE_RESULTS_2026-10-27.md) ·
+[Demo recording guide](docs/DEMO_RECORDING.md) ·
+[Formal project closure](docs/PROJECT_CLOSURE.md).
+
 ## Start with a synthetic demo (no private videos needed)
 
 The repository also includes a **three-video, spoken-audio synthetic demo**
@@ -116,8 +145,8 @@ SCENE_INDEX=artifacts/demo-index python -m streamlit run app.py --server.address
 The generator needs FFmpeg. It uses FFmpeg's `flite` filter when available; on macOS, it otherwise falls back to the built-in `say` command for speech. See
 [Demo & acceptance](docs/DEMO_AND_ACCEPTANCE.md) for setup, preflight checks
 for 2–3 real talking videos, controlled test labels, evaluation, and screen
-recording criteria. Real-scene Recall@5/MRR remains unmeasured without those
-actual videos and human-reviewed labels.
+recording criteria. Measured numbers on the owner's real three-video corpus use AI-assisted weak
+labels; independently human-verified Recall@5/MRR remains unmeasured.
 
 ## Setup on Mac or Linux
 
