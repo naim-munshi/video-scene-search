@@ -2,7 +2,7 @@
 
 **Closure date:** 27 October 2026
 **Release scope:** v0.1 local, single-user AI engineering portfolio prototype
-**Release branch:** `main` (GitHub default-branch setting is a separate repository action)
+**Release and default branch:** `main` (verified from repository metadata on 27 October 2026)
 **Repository:** `naim-munshi/video-scene-search`
 **Decision:** `CLOSED_LOCAL_ENGINEERING_SCOPE`
 
@@ -91,6 +91,7 @@ Missing, inconsistent or unrelated evidence is rejected; no pass is
 claimed from GitHub-only tests. It never modifies source/index/reports.
 The resulting status before optional manual Safari review is
 `LOCAL_ENGINEERING_PASS_BROWSER_PENDING`.
+
 ## Portfolio-ready claim
 
 **Safe description:** Developed a local multimodal video scene retrieval
