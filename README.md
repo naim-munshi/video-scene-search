@@ -36,8 +36,40 @@ and must not be represented as such on a CV. The q02 weak labels include ten
 relevant windows, limiting its maximum Recall@5 to 0.5. The initial q03
 intro/captions query was missed by all three retrieval methods. A change to
 visual-intent routing is present on branch MdNaim; it must be remeasured
-before claiming improvement. The 18-query held-out split has **not**
-been executed on the updated Mac environment.
+before claiming improvement. The 18-query test split was subsequently executed on the same
+AI-assisted weak-label dataset. Results below describe only a provisional
+engineering check, not a blind independently annotated benchmark.
+
+### Measured 27 Oct 2026: provisional full 24-query release check
+
+The Mac's local release runner completed both dev and test retrieval.
+Index audit returned `metadata_integrity_passed` for 3 videos, 252 windows,
+1,256 indexed frames and 453 speech segments, with no missing-file warnings.
+
+| Search mode | Dev Recall@5 | Dev MRR@5 | Test Recall@5 | Test MRR@5 |
+| --- | ---: | ---: | ---: | ---: |
+| Visual | 0.3722 | 0.6667 | 0.3925 | 0.4676 |
+| Transcript | 0.5167 | 0.5417 | 0.4159 | 0.4167 |
+| Hybrid | 0.6333 | 0.8333 | 0.5224 | 0.5759 |
+
+Test Hit@5: visual 0.6667, transcript 0.5000, hybrid **0.7222**
+(13/18 queries). The test set has 7 visual, 5 speech and 6 mixed queries.
+Hybrid had no labeled hit for q09, q10, q14, q21 and q24.
+On q09 transcript-only retrieved both candidate windows within the top 5,
+but hybrid retrieved neither. The updated query-intent heuristic has therefore
+**not demonstrated a general ranking improvement**. A further change would
+require development-only investigation and a fresh, untouched test set.
+
+**Every metric above is AI-assisted and weak-labeled.** Relevance IDs came
+from sampled contact sheets and ASR, not independent human ground truth.
+This is exploratory engineering evidence, NOT validated real-world accuracy
+or an unbiased blind test estimate. The release output was independently
+checked for arithmetic and report consistency; see
+[27 October release findings](docs/LOCAL_RELEASE_RESULTS_2026-10-27.md).
+
+The local release status is `LOCAL_ENGINEERING_CHECKS_PASS`.
+Safari playback, independent relevance-label completeness and public
+production security remain unverified or out of scope.
 
 ### Complete the reproducible local engineering release
 
