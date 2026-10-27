@@ -35,7 +35,7 @@ use the source-preserving, network-disabled conversion path:
 ```bash
 cd ~/video-scene-search
 source .venv/bin/activate
-git pull --ff-only origin MdNaim
+git pull --ff-only origin main
 df -h data/videos
 python scripts/prepare_portfolio_videos.py --only interview film --local-only
 python scripts/real_video_preflight.py --manifest data/portfolio-corpus.json
@@ -54,7 +54,7 @@ fully downloaded or cannot be decoded, repair it before indexing.
 ```bash
 cd ~/video-scene-search
 source .venv/bin/activate
-git pull --ff-only origin MdNaim
+git pull --ff-only origin main
 python scripts/prepare_portfolio_videos.py --plan
 python scripts/prepare_portfolio_videos.py
 python scripts/real_video_preflight.py --manifest data/portfolio-corpus.json
