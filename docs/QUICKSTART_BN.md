@@ -1,5 +1,30 @@
 # Mac-এ চালানোর নিয়ম
 
+## ২৭ অক্টোবর: প্রজেক্টের local engineering release বন্ধ (CLOSED)
+
+তোমার Mac-এ **৩টি ভিডিও, ২৪টি query, dev/test benchmark** সফলভাবে চালানো হয়েছে।
+নতুন করে ভিডিও download বা evaluation চালানোর প্রয়োজন নেই। এখন শুধু
+video+audio decode যাচাই এবং চাইলে Safari playback-এর ৯টি manual check:
+
+```bash
+cd ~/video-scene-search
+source .venv/bin/activate
+git pull --ff-only origin MdNaim
+python scripts/media_playback_preflight.py --index artifacts/portfolio-real-v2
+SCENE_INDEX=artifacts/portfolio-real-v2 python -m streamlit run app.py --server.address 127.0.0.1
+```
+
+Browser-এ **Video library** থেকে NASA / Interview / Tears of Steel-এ
+একটি একটি করে Beginning, Middle, Near end নির্বাচন করে play করো।
+ছবি ও শব্দ ঠিক থাকলে checkbox tick দাও। ৯টি হলে নিজের manual
+playback report download করতে পারবে। এটি automated Safari test নয়।
+AI-assisted query labels এখনো independently verified নয়।
+
+সম্পূর্ণ status: `docs/PROJECT_CLOSURE.md`।
+
+---
+
+
 ## বর্তমানে তৈরি তিন-ভিডিও প্রজেক্টের Final Engineering Check (এই অংশটাই এখন ব্যবহার করো)
 
 তোমার Mac-এ NASA, Interview ও Tears of Steel আগেই indexed হয়েছে।
