@@ -28,6 +28,8 @@ def main():
     search.add_argument("--index", default="artifacts/index")
     search.add_argument("--mode", choices=("visual", "transcript", "hybrid"), default="hybrid")
     search.add_argument("--k", type=int, default=5)
+    search.add_argument("--offline", action="store_true",
+                        help="Use cached Hugging Face models only; never access the Hub")
     search.add_argument("--device", choices=("auto", "cpu", "mps", "cuda"), default="auto")
     search.add_argument("--embedding-mode", choices=("auto", "subprocess", "in-process"), default="auto")
     evaluate = commands.add_parser("evaluate")
@@ -36,12 +38,18 @@ def main():
     evaluate.add_argument("--output", required=True)
     evaluate.add_argument("--split", choices=("dev", "test"), default="test")
     evaluate.add_argument("--k", type=int, default=5)
+    evaluate.add_argument("--offline", action="store_true",
+                          help="Use cached Hugging Face models only; never access the Hub")
     evaluate.add_argument("--device", choices=("auto", "cpu", "mps", "cuda"), default="auto")
     evaluate.add_argument("--embedding-mode", choices=("auto", "subprocess", "in-process"), default="auto")
     labels = commands.add_parser("init-labels", help="Create a blank 24-query annotation form")
     labels.add_argument("--index", default="artifacts/index")
     labels.add_argument("--output", default="evaluation/labels.json")
     args = parser.parse_args()
+    if getattr(args, "offline", False):
+        # Set before importing either model library; isolated workers inherit it.
+        from .query_worker import enable_offline_cache
+        enable_offline_cache()
     try:
         if args.command == "ingest":
             from .pipeline import build
