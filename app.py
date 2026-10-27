@@ -249,8 +249,14 @@ with annotation_tab:
     if not isinstance(labels.get("queries"), list) or not all(isinstance(q, dict) for q in labels["queries"]):
         st.error("queries must be a list of objects. Reload a valid labels file.")
         st.stop()
+    if labels.get("human_verified") is False or labels.get("independent_ground_truth") is False:
+        st.warning(
+            "This file contains AI-assisted candidate window labels, NOT independently "
+            "verified ground truth. Loading it does not make accuracy human-verified."
+        )
     existing = {q.get("id", ""): q for q in labels["queries"]}
-    selected = st.selectbox("Add or edit query", ["New query"] + list(existing))
+    # Default to the first existing query rather than confusing users with q25.
+    selected = st.selectbox("Add or edit query", list(existing) + ["New query"])
     current = existing.get(selected, {})
     # Key the form by selected query so defaults refresh when switching entries.
     with st.form(f"annotation_{selected}"):
@@ -273,9 +279,12 @@ with annotation_tab:
                 st.success("Saved in this session. Download labels below to keep your work.")
     st.caption(f"{len(labels['queries'])} queries. Target: 24 total, including 6 dev and 18 test.")
     reviewed = st.checkbox("I reviewed every query and all relevant windows; mark annotations complete")
-    export = {**labels, "status": "annotated" if reviewed else "draft"}
+    # Keep an existing structurally annotated weak-label file available for
+    # reproducible exploratory metrics without asserting human verification.
+    export = {**labels, "status": ("annotated" if reviewed or
+              labels.get("status") == "annotated" else "draft")}
     valid = True
-    if reviewed:
+    if export["status"] == "annotated":
         try:
             validate_labels(export, engine.windows)
         except ValueError as exc:
