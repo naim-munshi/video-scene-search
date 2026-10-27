@@ -1,5 +1,39 @@
 # Mac-এ চালানোর নিয়ম
 
+## বর্তমানে তৈরি তিন-ভিডিও প্রজেক্টের Final Engineering Check (এই অংশটাই এখন ব্যবহার করো)
+
+তোমার Mac-এ NASA, Interview ও Tears of Steel আগেই indexed হয়েছে।
+**নতুন করে ভিডিও download, ingest বা query লেখার প্রয়োজন নেই।**
+
+Terminal-এ একবার পুরো block copy-paste করো:
+
+```bash
+cd ~/video-scene-search
+source .venv/bin/activate
+git pull --ff-only origin MdNaim
+
+python scripts/finish_portfolio.py --preflight-only
+python scripts/finish_portfolio.py --device mps
+
+LATEST=$(ls -dt reports/portfolio-release-* | head -n 1)
+cat "$LATEST/RELEASE_SUMMARY.md"
+open -R "$LATEST/shareable-release-evidence.zip"
+```
+
+এই script আগের v2 index, ২৪টি query-এর JSON এবং Mac-এ cached models দিয়ে
+৬টি dev ও ১৮টি test query-এর **preliminary AI-assisted report** তৈরি করবে।
+সব result থাকবে নতুন reports/portfolio-release-... folder-এ।
+আগের video, labels, index, report বা Mac-এর OS বদলাবে না।
+
+কোনো error হলে শেষের Terminal output পাঠাও। Successful হলে
+shareable-release-evidence.zip file-টি upload করো, ফলাফল review করা যাবে।
+
+**মনে রাখবে:** AI-assisted labels দিয়ে পাওয়া score human-verified real-world
+accuracy নয়। Full Safari playback acceptance, independent ground-truth review
+এবং demo recording আলাদা sign-off। বিস্তারিত docs/PORTFOLIO_COMPLETION.md।
+
+---
+
 ## ১. Python environment
 
 ZIP extract করে `video-scene-search` folder-এ Terminal খুলবে। Python 3.12 লাগবে।
