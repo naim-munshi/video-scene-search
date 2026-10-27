@@ -4,7 +4,9 @@ import unittest
 from pathlib import Path
 from scene_search.ui_helpers import (discover_indexes, format_index,
                                      is_synthetic, readable_time, preview_frames,
-                                     playback_checkpoints, browser_checklist_status)
+                                     playback_checkpoints, browser_checklist_status,
+                                     playback_confirmation_key,
+                                     collect_playback_confirmations)
 
 
 class UIHelperTests(unittest.TestCase):
@@ -85,6 +87,41 @@ class UIHelperTests(unittest.TestCase):
         self.assertEqual(status["confirmed_checkpoints"], 8)
         self.assertEqual(browser_checklist_status("digest", {}, ids)["status"],
                          "NOT_VERIFIED")
+
+    def test_playback_confirmations_survive_hidden_widget_state(self):
+        from hashlib import sha256
+        digest = sha256(b"first index").hexdigest()
+        other = sha256(b"second index").hexdigest()
+        ids = ["portfolio_nasa", "portfolio_interview", "portfolio_film"]
+        persistent = {}
+        # Only the current widget is rendered at any given time in Streamlit.
+        # Prior checkpoint widgets disappear, but this backing store persists.
+        for vid in ids:
+            for step in ("Beginning", "Middle", "Near end"):
+                key = playback_confirmation_key(digest, vid, step)
+                persistent[key] = True
+        observed = collect_playback_confirmations(persistent, digest, ids)
+        self.assertEqual(browser_checklist_status(digest, observed, ids)["status"],
+                         "USER_SELF_ATTESTED")
+        self.assertEqual(browser_checklist_status(other,
+            collect_playback_confirmations(persistent, other, ids), ids)["status"],
+            "NOT_VERIFIED")
+        persistent.pop(playback_confirmation_key(digest, ids[1], "Middle"))
+        after_revocation = collect_playback_confirmations(persistent, digest, ids)
+        self.assertEqual(browser_checklist_status(digest,
+            after_revocation, ids)["confirmed_checkpoints"], 8)
+        self.assertFalse(after_revocation[ids[1]]["Middle"])
+
+    def test_playback_confirmation_keys_are_full_build_scoped(self):
+        from hashlib import sha256
+        digest = sha256(b"some index").hexdigest()
+        value = playback_confirmation_key(digest, "portfolio_nasa", "Beginning")
+        self.assertIn(digest, value)
+        for bad in ("digest", "", None):
+            with self.assertRaises(ValueError):
+                playback_confirmation_key(bad, "portfolio_nasa", "Beginning")
+        with self.assertRaises(ValueError):
+            playback_confirmation_key(digest, "portfolio_nasa", "Not a checkpoint")
 
     def test_index_labels(self):
         self.assertIn("DEMO", format_index("/tmp/demo-v1"))
