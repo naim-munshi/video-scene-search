@@ -2,7 +2,7 @@
 
 **Closure date:** 27 October 2026
 **Release scope:** v0.1 local, single-user AI engineering portfolio prototype
-**Default branch:** `MdNaim`
+**Release branch:** `main` (GitHub default-branch setting is a separate repository action)
 **Repository:** `naim-munshi/video-scene-search`
 **Decision:** `CLOSED_LOCAL_ENGINEERING_SCOPE`
 
@@ -66,7 +66,7 @@ have been independently certified.
 ```bash
 cd ~/video-scene-search
 source .venv/bin/activate
-git pull --ff-only origin MdNaim
+git pull --ff-only origin main
 python scripts/media_playback_preflight.py --index artifacts/portfolio-real-v2
 SCENE_INDEX=artifacts/portfolio-real-v2 python -m streamlit run app.py --server.address 127.0.0.1
 ```
