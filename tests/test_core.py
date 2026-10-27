@@ -57,6 +57,21 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(hybrid_fuse("A red screen while narrator talks", visual, transcript),
                          fuse(visual, transcript))
 
+    def test_visual_scene_language_routes_to_visual_evidence(self):
+        visual_queries = (
+            "The interview opens with two seated men and name captions visible.",
+            "A robot stands near a building.",
+            "Two people appear in a close-up shot.",
+            "A futuristic machine is shown outdoors.",
+        )
+        for query in visual_queries:
+            with self.subTest(query=query):
+                self.assertEqual(hybrid_weights(query), (1.0, 0.35))
+        speech_query = "A narrator describes the Apollo mission."
+        self.assertEqual(hybrid_weights(speech_query), (0.2, 1.0))
+        mixed_query = "A seated astronaut explains the instrument controls."
+        self.assertEqual(hybrid_weights(mixed_query), (1.0, 1.0))
+
     def test_undetermined_query_uses_transcript_prior(self):
         visual = [("x", 0.9), ("right", 0.3)]
         transcript = [("right", 0.9), ("x", 0.3)]
