@@ -28,7 +28,7 @@ and rights independently before using it; network availability varies.
 
     cd ~/video-scene-search
     source .venv/bin/activate
-    git pull --ff-only origin MdNaim
+    git pull --ff-only origin main
     python -m pip install -e .
     python scripts/add_nasa_video.py
     python scripts/real_video_preflight.py --manifest data/portfolio-corpus-3.json
