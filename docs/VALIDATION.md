@@ -20,12 +20,20 @@
 **Warning:** This is not independently verified real-world accuracy.
 The development numbers precede the new visual-intent keyword update.
 No improvement can be asserted until a new local Mac evaluation is run.
-No updated 18-query test measurement was provided as of this revision.
+The subsequent local release runner **did complete 18 provisional test
+queries** with the updated code: visual Recall@5/MRR@5 0.3925/0.4676,
+transcript 0.4159/0.4167, hybrid 0.5224/0.5759; hybrid Hit@5 0.7222.
+These are AI-assisted weak-label measurements, not human-reviewed
+blind-test accuracy. The complete audit and per-query failure review is
+at [Local release results](LOCAL_RELEASE_RESULTS_2026-10-27.md).
 q02's ten labeled candidate windows imply maximum Recall@5 = 0.5.
 q03 missed its labeled interview opening in all three modes.
 
 ## Current repository release readiness
 
+- The release runner has now succeeded on the owner's Mac; its
+  RELEASE_STATUS.json reports LOCAL_ENGINEERING_CHECKS_PASS and the
+  independent arithmetic/ZIP audit found no inconsistencies.
 - A release runner under scripts/finish_portfolio.py checks local index
   metadata, 24-query label shape (6 dev + 18 test), SHA-256 build/index
   fingerprints, executes both splits with local cached models, creates
