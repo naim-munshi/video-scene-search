@@ -17,12 +17,34 @@ owner-provided screenshots. It contains:
 - `docs/assets/demo/03-timestamp-search.jpg` (NASA 01:50 matching moment)
 - `docs/DEMO_GALLERY.md` (captions, source credits, weak-label caveat)
 
-These **binary images are not currently committed to the GitHub repository**
-until the owner imports and pushes the prepared bundle. Do not create broken
-image links in README before that upload. Do not claim a screenshot is an
-independently verified accuracy result, and do not publish full raw contact
-sheets or original third-party movies. The gallery file credits
-ConversationEDU, Blender Foundation and NASA / Apollo 15 Learning Hub.
+These **binary images are not yet committed to GitHub**. The first
+`unzip` attempt failed because the ZIP had not been downloaded to the Mac.
+Download the owner-provided ChatGPT attachment
+`video_scene_search_demo_gallery.zip` to `~/Downloads` first. Then run:
+
+```bash
+cd ~/video-scene-search
+git pull --ff-only origin main
+python scripts/install_demo_gallery.py ~/Downloads/video_scene_search_demo_gallery.zip
+git add docs/DEMO_GALLERY.md docs/assets/demo
+git commit -m "docs(demo): add original Streamlit screenshots with attribution"
+git push origin main
+git tag -a v0.1.0 -m "Video Scene Search v0.1.0 local portfolio"
+git push origin v0.1.0
+```
+
+The installer checks the exact ZIP and each original screenshot SHA-256
+before writing anything; it cannot work until the file is actually saved
+to the Mac. After the gallery commit, pushing `v0.1.0` triggers
+`.github/workflows/publish-release.yml`: it reruns unit tests, verifies
+image hashes, and creates a GitHub Release with notes and a demo screenshot
+ZIP. If that GitHub Action fails, **do not claim a published release**.
+No original videos, model weights, transcripts, raw contact sheets or
+FAISS indexes are uploaded.
+
+Do not claim a screenshot proves independently verified retrieval accuracy.
+Gallery attributions credit ConversationEDU, Blender Foundation and NASA /
+Apollo 15 Learning Hub.
 
 ## Record locally
 
