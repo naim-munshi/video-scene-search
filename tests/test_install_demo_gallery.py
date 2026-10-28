@@ -40,7 +40,9 @@ class GalleryInstallerTests(unittest.TestCase):
     def context(self, archive_sha):
         return patch.multiple(
             gallery, EXPECTED_ARCHIVE_SHA256=archive_sha,
-            EXPECTED_IMAGES={self.file: self.image_sha})
+            EXPECTED_IMAGES={self.file: self.image_sha},
+            ALLOWED={self.file, "docs/assets/demo/manifest.json",
+                     "docs/DEMO_GALLERY.md", "DEMO_ASSETS_README.txt"})
 
     def test_verified_install_and_idempotency(self):
         sha = self.create_zip()
