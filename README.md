@@ -6,7 +6,17 @@
 
 **Find the right moment in a video using natural-language queries.** A local multimodal search prototype that aligns sampled image frames and transcribed speech with timestamped playback. Built for an AI engineering portfolio; not affiliated with ABEMA or any commercial video service.
 
+**Start here:** [Engineering brief / 日本語概要](docs/RECRUITER_BRIEF.md) ·
+[Fresh human-review evaluation](docs/HUMAN_EVALUATION.md) ·
+[Historical real-video results](docs/LOCAL_RELEASE_RESULTS_2026-10-27.md) ·
+[Source and tests](#repository-guide)
+
 **Status:** `v0.1` local engineering release **PASS** (27 October 2026). Browser self-attestation, independent label verification and public hosting are **not** part of that PASS.
+
+**Evaluation update:** a separate workflow now freezes fresh queries/splits,
+records human review, and compares the hybrid with visual, transcript and
+equal-weight RRF baselines. It includes paired bootstrap intervals and per-query
+failures. **The tooling does not supply new human labels or claim improved accuracy.**
 
 ## At a glance
 
@@ -18,6 +28,24 @@
 | Index | FAISS, fixed 10-second windows, SHA-256 build manifest |
 | Interface | Streamlit search, evidence thumbnails/transcripts, timestamp playback, local video import |
 | Deployment boundary | Single-user Mac/Linux prototype; local media excluded from Git |
+
+### Inspect the software without model downloads
+
+```bash
+git clone https://github.com/naim-munshi/video-scene-search.git
+cd video-scene-search
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install "Pillow>=10,<13"
+PYTHONPATH=src python -m unittest discover -s tests -v
+PYTHONPATH=src python -m scene_search.cli --help
+```
+
+This runs the lightweight software checks. Native ML/video integration tests
+remain optional; passing these checks does not establish semantic quality or
+Safari playback. For the actual video UI, use the full setup below and your own
+local media/index. For a fresh ground-truth study, follow the
+[human evaluation guide](docs/HUMAN_EVALUATION.md); it reuses the existing index.
 
 ### Real-video engineering evidence
 
@@ -118,6 +146,8 @@ verified ground truth; no user credentials or media are uploaded.
 
 | Resource | Purpose |
 | --- | --- |
+| [Engineering brief / 日本語概要](docs/RECRUITER_BRIEF.md) | Technical decisions, source tour and an honest interview summary |
+| [Fresh human evaluation](docs/HUMAN_EVALUATION.md) | Freeze queries, record human review, compare four methods and analyze uncertainty |
 | [Architecture](docs/ARCHITECTURE.md) | Component diagram, search pipeline and data contracts |
 | [Local release audit](docs/LOCAL_RELEASE_RESULTS_2026-10-27.md) | Provenance, metrics, limitations and failure cases |
 | [Project closure](docs/PROJECT_CLOSURE.md) | Phase status, evidence and outstanding external sign-offs |

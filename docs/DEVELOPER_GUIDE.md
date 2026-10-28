@@ -165,8 +165,13 @@ There is no confidence threshold; top results may all be irrelevant.
 
 ## 4. Annotate and evaluate
 
+For a **new human-reviewed study**, use the [frozen-query workflow](HUMAN_EVALUATION.md).
+It adds per-query review records, plan checks, an equal-RRF baseline and paired
+bootstrap comparisons. The legacy instructions below are retained for exploratory
+24-query annotation; they do not create independently verified ground truth.
+
 ```bash
-scene-search init-labels --index artifacts/index --output evaluation/labels.json
+scene-search init-labels --index artifacts/index --count 24 --dev-count 6 --output evaluation/labels.json
 ```
 
 1. Use the **Evaluate & annotate** tab to watch source windows, without
