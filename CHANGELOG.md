@@ -4,6 +4,16 @@ This repository follows a lightweight changelog convention. Entries describe imp
 
 ## [Unreleased]
 
+- Fixed short-clip library previews crashing on the 40-second manual playback checklist; short clips remain ineligible for that sign-off.
+- Enabled synthetic video/FAISS/app integration in CI with CPU dependencies and offline model stubs; this checks wiring, not model accuracy.
+
+- Added a ranking-free Streamlit human-review workbench with editable query
+  drafts, frozen plans, original-video timestamp browsing, per-query evidence
+  records, append-only checkpoints, restart/resume and finalized-study commands.
+- Added a separate UI CI job covering freeze, save, resume, finalization and
+  missing-media rejection without model downloads. No new human labels or
+  real-world accuracy measurements are supplied by the workbench.
+
 - Added configurable annotation forms and a frozen query/split protocol, with
   exact normalized old-query exclusion and per-query human review records.
 - Added `freeze-labels`, `finalize-labels`, and evaluation `--plan` validation.

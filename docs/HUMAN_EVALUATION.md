@@ -7,6 +7,40 @@ All commands run from the repository root with the existing environment active.
 No re-ingestion, training or model download is needed if the current index and
 model cache are available.
 
+## Recommended browser workflow
+
+On the Mac that already contains the source videos and index, run:
+
+```bash
+source .venv/bin/activate
+SCENE_INDEX=artifacts/portfolio-real-v2 python -m streamlit run review_app.py --server.address 127.0.0.1
+```
+
+Open the URL printed in Terminal. This separate workbench does not load CLIP,
+Whisper or FAISS and never shows ranked search results.
+
+1. Create a study (default 48 queries, 12 dev; smaller pilot studies are allowed).
+2. Write fresh questions in the table. **Save questions** preserves unfinished
+   work. **Save and freeze questions** requires complete unique questions and
+   both splits; frozen fields then become read-only.
+3. Browse source footage by timestamp, select a question, choose every relevant
+   window, enter a reviewer alias and evidence note, confirm actual review and
+   save. The confirmation box starts unchecked on each form.
+4. Resume the saved study from the sidebar after refreshing/restarting. Every
+   save creates a separate checkpoint under `evaluation/human-review/`.
+5. Once all questions are reviewed, finalize. The page displays ready-to-run
+   commands using your exact paths. Run dev first and test only after fixing
+   your code/settings. The commands use cached real models, not mock encoders.
+
+Missing original videos block completed review saves. Finalized studies cannot
+be edited in the workbench. If the study itself needs revision, create a new
+one and retain the earlier record. These controls record your declarations;
+they do not prove that a person watched the video or was independent.
+
+The workflow below provides the same protocol through the CLI. Use it when you
+want explicit old-query exclusion or prefer editing JSON. Do not use the legacy
+search app's annotation editor to modify a frozen study.
+
 ## 1. Write fresh queries before viewing rankings
 
 ```bash
