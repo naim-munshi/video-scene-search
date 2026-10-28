@@ -4,6 +4,19 @@ This repository follows a lightweight changelog convention. Entries describe imp
 
 ## [Unreleased]
 
+- Added configurable annotation forms and a frozen query/split protocol, with
+  exact normalized old-query exclusion and per-query human review records.
+- Added `freeze-labels`, `finalize-labels`, and evaluation `--plan` validation.
+  Outputs never overwrite earlier plans/labels. Human review remains self-reported.
+- Added optional `--compare-equal-rrf` ablation, paired bootstrap comparison
+  intervals, per-query wins/ties/losses and implementation hashes in reports.
+- Reject truncated ranking batches and unknown/duplicate window IDs rather than
+  silently publishing incomplete metrics. Unknown label provenance is explicitly
+  unverified; historical weak-label results remain unchanged.
+- Added a fresh evaluation guide with Bangla instructions and an English/Japanese
+  recruiter brief. No new real-video accuracy, human labels or browser acceptance
+  is claimed. Existing indexes and historical metrics require no migration.
+
 - Professional `main`-branch repository presentation, contribution and security documentation.
 - Local video/audio decoder checkpoint verification and optional operator playback checklist.
 - Source and documentation polish; no retraining or modification of local videos/indexes.

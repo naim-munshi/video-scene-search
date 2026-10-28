@@ -1,8 +1,5 @@
 import argparse
 import json
-from pathlib import Path
-
-from .core import read_json, sha256, write_json
 
 
 def main():
@@ -38,13 +35,29 @@ def main():
     evaluate.add_argument("--output", required=True)
     evaluate.add_argument("--split", choices=("dev", "test"), default="test")
     evaluate.add_argument("--k", type=int, default=5)
+    evaluate.add_argument("--plan", help="Frozen plan required for finalized human-review labels")
+    evaluate.add_argument("--compare-equal-rrf", action="store_true",
+                          help="Add an equal-weight RRF ablation without changing search behavior")
     evaluate.add_argument("--offline", action="store_true",
                           help="Use cached Hugging Face models only; never access the Hub")
     evaluate.add_argument("--device", choices=("auto", "cpu", "mps", "cuda"), default="auto")
     evaluate.add_argument("--embedding-mode", choices=("auto", "subprocess", "in-process"), default="auto")
-    labels = commands.add_parser("init-labels", help="Create a blank 24-query annotation form")
+    labels = commands.add_parser("init-labels", help="Create a blank annotation form without loading models")
     labels.add_argument("--index", default="artifacts/index")
     labels.add_argument("--output", default="evaluation/labels.json")
+    labels.add_argument("--count", type=int, default=24)
+    labels.add_argument("--dev-count", type=int, default=6)
+    freeze = commands.add_parser("freeze-labels", help="Record queries and splits before labeling or ranking")
+    freeze.add_argument("--index", required=True)
+    freeze.add_argument("--labels", required=True)
+    freeze.add_argument("--output", required=True)
+    freeze.add_argument("--exclude-labels", action="append", default=[],
+                        help="Reject exact normalized reuse of old query text; repeat for multiple files")
+    finalize = commands.add_parser("finalize-labels", help="Validate per-query human-review records")
+    finalize.add_argument("--index", required=True)
+    finalize.add_argument("--labels", required=True)
+    finalize.add_argument("--plan", required=True)
+    finalize.add_argument("--output", required=True)
     args = parser.parse_args()
     if getattr(args, "offline", False):
         # Set before importing either model library; isolated workers inherit it.
@@ -60,14 +73,14 @@ def main():
             from .extend import extend as extend_index
             result = extend_index(args.base_index, args.manifest, args.output, device=args.device)
         elif args.command == "init-labels":
-            if Path(args.output).exists():
-                raise ValueError("Labels already exist; refusing to overwrite")
-            root = Path(args.index)
-            read_json(root / "windows.json")
-            write_json(args.output, {"status": "draft", "build_sha256": sha256(root / "build.json"),
-                "queries": [{"id": f"q{i+1:02d}", "text": "", "kind": ("visual", "speech", "mixed")[i % 3],
-                             "split": "dev" if i < 6 else "test", "relevant": []} for i in range(24)]})
-            result = {"labels": args.output, "instructions": "Write queries and hand-label relevant window IDs using the Annotate tab"}
+            from .annotations import init_labels
+            result = init_labels(args.index, args.output, args.count, args.dev_count)
+        elif args.command == "freeze-labels":
+            from .annotations import freeze_labels
+            result = freeze_labels(args.index, args.labels, args.output, args.exclude_labels)
+        elif args.command == "finalize-labels":
+            from .annotations import finalize_labels
+            result = finalize_labels(args.index, args.labels, args.plan, args.output)
         else:
             from .search import SearchEngine
             engine = SearchEngine(args.index, device=args.device, embedding_mode=args.embedding_mode)
@@ -75,7 +88,8 @@ def main():
                 result = engine.search(args.query, args.mode, args.k)
             else:
                 from .evaluate import evaluate as run_evaluation
-                result = run_evaluation(engine, args.labels, args.output, args.split, args.k)
+                result = run_evaluation(engine, args.labels, args.output, args.split, args.k,
+                                        plan_path=args.plan, compare_equal_rrf=args.compare_equal_rrf)
         print(json.dumps(result, ensure_ascii=False, indent=2))
     except (ValueError, OSError, ImportError, RuntimeError) as e:
         parser.exit(2, f"Error: {e}\n")
