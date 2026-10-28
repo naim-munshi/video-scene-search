@@ -1,0 +1,79 @@
+name: Publish v0.1.0 Portfolio Release
+
+on:
+  push:
+    tags:
+      - v0.1.0
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: github.repository == 'naim-munshi/video-scene-search'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout tagged commit
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install lightweight test dependency
+        run: python -m pip install "Pillow>=10,<13"
+
+      - name: Verify tag belongs to main
+        run: |
+          git fetch origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+
+      - name: Run software and privacy checks
+        env:
+          PYTHONPATH: src
+        run: |
+          python -m compileall -q src app.py scripts tests
+          python scripts/check_repository_hygiene.py
+          python -m unittest discover -s tests -q
+
+      - name: Verify owner-provided screenshots and provenance
+        run: |
+          python - <<'PY'
+          import hashlib
+          from pathlib import Path
+          from scripts.install_demo_gallery import EXPECTED_IMAGES
+          required = [
+              "docs/DEMO_GALLERY.md",
+              "docs/assets/demo/manifest.json",
+              "docs/RELEASE_NOTES_v0.1.0.md",
+          ]
+          for filename in required:
+              if not Path(filename).is_file():
+                  raise SystemExit(f"BLOCKED: missing release evidence: {filename}")
+          for filename, expected in EXPECTED_IMAGES.items():
+              file = Path(filename)
+              if not file.is_file():
+                  raise SystemExit(f"BLOCKED: missing demo screenshot: {filename}")
+              actual = hashlib.sha256(file.read_bytes()).hexdigest()
+              if actual != expected:
+                  raise SystemExit(f"BLOCKED: demo screenshot checksum changed: {filename}")
+          print("Verified 3 genuine owner-provided screenshots and release notes")
+          PY
+
+      - name: Package shareable screenshots only
+        run: |
+          zip -q -r video-scene-search-demo-gallery-v0.1.0.zip docs/DEMO_GALLERY.md docs/assets/demo/
+
+      - name: Publish immutable-scope GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --verify-tag \
+            --title "Video Scene Search v0.1.0 — Local AI Engineering Portfolio" \
+            --notes-file docs/RELEASE_NOTES_v0.1.0.md \
+            video-scene-search-demo-gallery-v0.1.0.zip
