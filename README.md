@@ -79,6 +79,19 @@ flowchart LR
 
 See [full architecture and security boundaries](docs/ARCHITECTURE.md).
 
+## Complete human review in a separate workbench
+
+```bash
+source .venv/bin/activate
+SCENE_INDEX=artifacts/portfolio-real-v2 python -m streamlit run review_app.py --server.address 127.0.0.1
+```
+
+Write and freeze fresh queries, watch source timestamps without search rankings,
+record evidence, and save/resume each review locally. When all questions have
+been reviewed, the workbench generates exact dev/test evaluation commands.
+It reuses your videos and index and does not load ML models.
+[Step-by-step guide, including বাংলা](docs/HUMAN_EVALUATION.md).
+
 ## Run on the existing Mac collection
 
 Requires the owner's **already-built** `artifacts/portfolio-real-v2` and Python virtual environment. Do not redownload or re-index existing media.

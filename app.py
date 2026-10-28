@@ -315,31 +315,35 @@ with library_tab:
     with preview:
         media_path = Path(source["path"])
         if media_path.is_file():
-            checkpoints = playback_checkpoints(source["duration"])
-            checkpoint = st.selectbox(
-                "Playback checkpoint — play and listen",
-                range(len(checkpoints)),
-                format_func=lambda i: (
-                    f"{checkpoints[i][0]} · {readable_time(checkpoints[i][1])}"
-                ), key=f"playback_checkpoint_{root.name}_{library_id}")
-            step, offset = checkpoints[checkpoint]
-            st.video(str(media_path), start_time=offset)
-            # Streamlit drops hidden widget keys when switching sources.
-            # Persist user confirmations separately, scoped to the exact
-            # SHA-256 build so other collections cannot reuse them.
-            digest = sha256(root / "build.json")
-            confirmations = st.session_state.setdefault(
-                "_manual_playback_confirmations", {})
-            confirmation = playback_confirmation_key(digest, library_id, step)
-            checked = st.checkbox(
-                "I played this timestamp and confirmed BOTH picture and sound",
-                value=confirmations.get(confirmation) is True,
-                key=f"_playback_widget_{digest[:12]}_{library_id}_{step}")
-            if checked:
-                confirmations[confirmation] = True
+            if source["duration"] < 40:
+                st.video(str(media_path))
+                st.caption("Short clip preview. The three-point playback sign-off requires at least 40 seconds.")
             else:
-                confirmations.pop(confirmation, None)
-            st.caption("Self-reported local browser observation, not automated Safari testing.")
+                checkpoints = playback_checkpoints(source["duration"])
+                checkpoint = st.selectbox(
+                    "Playback checkpoint — play and listen",
+                    range(len(checkpoints)),
+                    format_func=lambda i: (
+                        f"{checkpoints[i][0]} · {readable_time(checkpoints[i][1])}"
+                    ), key=f"playback_checkpoint_{root.name}_{library_id}")
+                step, offset = checkpoints[checkpoint]
+                st.video(str(media_path), start_time=offset)
+                # Streamlit drops hidden widget keys when switching sources.
+                # Persist user confirmations separately, scoped to the exact
+                # SHA-256 build so other collections cannot reuse them.
+                digest = sha256(root / "build.json")
+                confirmations = st.session_state.setdefault(
+                    "_manual_playback_confirmations", {})
+                confirmation = playback_confirmation_key(digest, library_id, step)
+                checked = st.checkbox(
+                    "I played this timestamp and confirmed BOTH picture and sound",
+                    value=confirmations.get(confirmation) is True,
+                    key=f"_playback_widget_{digest[:12]}_{library_id}_{step}")
+                if checked:
+                    confirmations[confirmation] = True
+                else:
+                    confirmations.pop(confirmation, None)
+                st.caption("Self-reported local browser observation, not automated Safari testing.")
         else:
             st.warning("Original video is missing from its saved path.")
     with info:
